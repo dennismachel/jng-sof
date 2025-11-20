@@ -8,7 +8,19 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
         .input-field {
-            @apply w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150;
+            /* Replaced Tailwind @apply (which requires a build step) with equivalent plain CSS
+               so the styles work in the browser without PostCSS/Tailwind processing. */
+            width: 100%;
+            padding: 0.75rem; /* p-3 */
+            border: 1px solid #D1D5DB; /* border-gray-300 */
+            border-radius: 0.5rem; /* rounded-lg */
+            transition: box-shadow 150ms, border-color 150ms; /* transition duration-150 */
+        }
+
+        .input-field:focus {
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(99,102,241,0.15); /* approximate ring-indigo-500 */
+            border-color: #6366F1; /* indigo-500 */
         }
     </style>
 </head>
