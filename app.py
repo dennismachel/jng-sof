@@ -4,6 +4,7 @@ import secrets # Used for generating secure passwords
 from flask import Flask, render_template, request, redirect, url_for, session, abort
 import uuid
 import json # 
+import bcrypt
 
 # --- Configuration ---
 DATABASE_FILE = 'statement_of_affairs.duckdb'
@@ -44,17 +45,15 @@ CREATE TABLE IF NOT EXISTS Users (
 );
 """
 
-# --- Flask App Setup ---
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'default_secret_key_change_me_in_prod') 
 
-#--- Database Connection --- DUCKDB ---
 def get_db_connection():
     """Establishes connection to DuckDB and ensures schema exists."""
     conn = duckdb.connect(database=DATABASE_FILE, read_only=False)
     conn.sql(SCHEMA)
     return conn
-#--- Authentication Helpers ---
+
 def check_auth(is_admin_required=False):
     """Checks if the user is logged in and redirects if not."""
     if 'logged_in' not in session:
@@ -64,7 +63,6 @@ def check_auth(is_admin_required=False):
         return False
     return True
 
-#--- Routes ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     """Handles user login."""
@@ -73,18 +71,76 @@ def login():
         password = request.form.get('password')
         
         conn = get_db_connection()
-        user_data = conn.sql(f"SELECT password, is_admin FROM Users WHERE email = '{email}'").fetchone()
+        # Ensure email ends with corporate domain
+        if not email.endswith('@corporate.com'):
+            conn.close()
+            return render_template('login.html', error="Invalid email format. Must end with @corporate.com.")
+
+        # Parameterized SELECT to avoid injection
+        user_row = conn.execute("SELECT password, is_admin FROM Users WHERE email = ?", (email,)).fetchone()
         conn.close()
 
-        if user_data and user_data[0] == password: # UNSAFE CHECK: See SCHEMA notes
-            session['logged_in'] = True
-            session['email'] = email
-            session['is_admin'] = user_data[1]
-            return redirect(url_for('index'))
-        else:
-            return render_template('login.html', error="Invalid credentials or email format.")
+        if user_row:
+            stored_password = user_row[0]
+            is_admin = user_row[1]
+            # stored_password should be a bcrypt hash; verify it
+            try:
+                if bcrypt.checkpw(password.encode('utf-8'), stored_password.encode('utf-8')):
+                    session['logged_in'] = True
+                    session['email'] = email
+                    session['is_admin'] = is_admin
+                    return redirect(url_for('index'))
+            except Exception:
+                # If hash verification fails or stored format is unexpected, fall through to error
+                pass
+
+        return render_template('login.html', error="Invalid credentials or email format.")
 
     return render_template('login.html', corporate_domain="@corporate.com")
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    """Handles new user self-registration."""
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+        
+        if not email or not email.endswith('@corporate.com'):
+            return render_template('register.html', error="Registration failed: Invalid email format. Must end with @corporate.com.")
+        
+        if len(password) < 8:
+            return render_template('register.html', error="Registration failed: Password must be at least 8 characters long.")
+
+        conn = get_db_connection()
+        try:
+            # Check if user already exists (parameterized)
+            existing_user = conn.execute("SELECT email FROM Users WHERE email = ?", (email,)).fetchone()
+            if existing_user:
+                conn.close()
+                return render_template('register.html', error="Registration failed: This email address is already in use.")
+
+            # Hash the password with bcrypt
+            hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+            # Create new user (non-admin)
+            conn.execute("""
+                INSERT INTO Users (user_id, email, password, is_admin) 
+                VALUES (?, ?, ?, FALSE)
+            """, (str(uuid.uuid4()), email, hashed))
+            conn.close()
+            
+            # Auto-login the new user
+            session['logged_in'] = True
+            session['email'] = email
+            session['is_admin'] = False
+            return redirect(url_for('index'))
+            
+        except Exception as e:
+            conn.close()
+            return render_template('register.html', error=f"A database error occurred during registration: {e}")
+
+    return render_template('register.html')
+
 
 @app.route('/logout')
 def logout():
@@ -110,14 +166,17 @@ def admin():
             message = "Error: Invalid email format. Must end with @corporate.com."
         else:
             # Generate a secure, one-time password
-            new_user_password = secrets.token_hex(8) 
-            
+            new_user_password = secrets.token_hex(8)
+
+            # Hash the one-time password before storing
+            hashed = bcrypt.hashpw(new_user_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
             conn = get_db_connection()
             try:
                 conn.execute("""
                     INSERT INTO Users (user_id, email, password, is_admin) 
                     VALUES (?, ?, ?, FALSE)
-                """, (str(uuid.uuid4()), email, new_user_password)) # UNSAFE: storing plain password
+                """, (str(uuid.uuid4()), email, hashed))
                 conn.close()
                 message = f"Success! User {email} created."
             except duckdb.ConstraintException:
@@ -250,10 +309,12 @@ def initialize_admin_user():
     count = conn.sql("SELECT count(*) FROM Users").fetchone()[0]
     if count == 0:
         print("--- Creating Initial Admin User ---")
+        # Hash the admin password before storing
+        admin_hashed = bcrypt.hashpw(ADMIN_PASSWORD.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         conn.execute("""
             INSERT INTO Users (user_id, email, password, is_admin) 
             VALUES (?, ?, ?, TRUE)
-        """, (str(uuid.uuid4()), ADMIN_EMAIL, ADMIN_PASSWORD)) # UNSAFE: plain password
+        """, (str(uuid.uuid4()), ADMIN_EMAIL, admin_hashed))
         conn.close()
         print(f"Admin User created: {ADMIN_EMAIL} / {ADMIN_PASSWORD}")
         print("---------------------------------")

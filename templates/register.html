@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Confidential Statement</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .input-field {
+            /* Replaced Tailwind @apply with plain CSS so the page works without a build step. */
+            width: 100%;
+            padding: 0.75rem; /* p-3 */
+            border: 1px solid #D1D5DB; /* border-gray-300 */
+            border-radius: 0.5rem; /* rounded-lg */
+            transition: box-shadow 150ms, border-color 150ms; /* transition duration-150 */
+        }
+
+        .input-field:focus {
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(99,102,241,0.15); /* approximate ring-indigo-500 */
+            border-color: #6366F1; /* indigo-500 */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+
+    <div class="w-full max-w-md bg-white p-8 rounded-2xl shadow-2xl border border-indigo-100">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800">New Employee Registration</h1>
+            <p class="mt-2 text-gray-500">Create your secure credentials</p>
+        </header>
+        
+        {% if error %}
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative mb-4" role="alert">
+          <span class="block sm:inline">{{ error }}</span>
+        </div>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('register') }}" class="space-y-6">
+            <div>
+                <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Corporate Email Address</label>
+                <input type="email" id="email" name="email" required class="input-field" placeholder="employee@corporate.com" pattern=".*@corporate\.com$" title="Must be a corporate email address (@corporate.com)">
+                <p class="mt-1 text-xs text-gray-400">Your email will be your unique identifier.</p>
+            </div>
+            
+            <div>
+                <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Choose Password</label>
+                <input type="password" id="password" name="password" required class="input-field" placeholder="Must be at least 8 characters">
+                <p class="mt-1 text-xs text-gray-400">Ensure this is a strong password.</p>
+            </div>
+            
+            <button type="submit" class="w-full px-4 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition duration-200 focus:outline-none focus:ring-4 focus:ring-indigo-300">
+                Register and Log In
+            </button>
+        </form>
+
+        <div class="mt-6 text-center text-sm">
+            <a href="{{ url_for('login') }}" class="text-indigo-600 hover:text-indigo-800 font-medium">Already have an account? Log In.</a>
+        </div>
+    </div>
+
+</body>
+</html>

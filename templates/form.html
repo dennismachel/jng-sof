@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confidential Statement of Affairs</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .input-field {
+            /* Replaced Tailwind @apply with plain CSS so the page works without a build step. */
+            width: 100%;
+            padding: 0.75rem; /* p-3 */
+            border: 1px solid #D1D5DB; /* border-gray-300 */
+            border-radius: 0.5rem; /* rounded-lg */
+            transition: box-shadow 150ms, border-color 150ms; /* transition duration-150 */
+        }
+
+        .input-field:focus {
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(99,102,241,0.15); /* approximate ring-indigo-500 */
+            border-color: #6366F1; /* indigo-500 */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4 sm:p-8">
+
+    <!-- Main Content: Form -->
+    <div id="form-content" class="max-w-4xl mx-auto bg-white p-6 sm:p-10 rounded-2xl shadow-2xl">
+        <header class="text-center mb-10">
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-800">Confidential Statement of Affairs</h1>
+            <p class="mt-2 text-lg text-indigo-600">Employee Data & Financial Disclosure</p>
+        </header>
+        
+        <form method="POST" action="/submit">
+            
+            <!-- SECTION 1: PERSONAL DETAILS -->
+            <div class="mb-8 border-b pb-4">
+                <h2 class="text-2xl font-semibold text-gray-700 mb-4">1. Personal Information</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                        <input type="text" id="name" name="name" required class="input-field" placeholder="John Doe">
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 2: ASSETS & LIABILITIES SUMMARY -->
+            <div class="mb-8 border-b pb-4">
+                <h2 class="text-2xl font-semibold text-gray-700 mb-4">2. Summary of Assets & Liabilities</h2>
+                <p class="text-sm text-gray-500 mb-4">Provide the total estimated value for your holdings and debts.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Assets -->
+                    <div>
+                        <label for="total_assets" class="block text-sm font-medium text-gray-700 mb-1">Total Estimated Assets (All Types)</label>
+                        <input type="number" step="0.01" id="total_assets" name="total_assets" required class="input-field" placeholder="e.g., 500000.00">
+                    </div>
+                    <!-- Liabilities -->
+                    <div>
+                        <label for="total_liabilities" class="block text-sm font-medium text-gray-700 mb-1">Total Estimated Liabilities (All Loans/Debts)</label>
+                        <input type="number" step="0.01" id="total_liabilities" name="total_liabilities" required class="input-field" placeholder="e.g., 200000.00">
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 3: DETAILED SCHEDULES (Motor Vehicle Example) -->
+            <div class="mb-8 border-b pb-4 bg-indigo-50 p-6 rounded-xl">
+                <h2 class="text-2xl font-semibold text-gray-700 mb-4">3. Detailed Schedule: Motor Vehicles (Example)</h2>
+                <p class="text-sm text-gray-600 mb-4">Provide details for your primary motor vehicle.</p>
+                <!-- Only one vehicle shown for brevity; extend this section for multiple vehicles -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label for="mv_type_1" class="block text-sm font-medium text-gray-700 mb-1">Type / Make</label>
+                        <input type="text" id="mv_type_1" name="mv_type_1" class="input-field" placeholder="Sedan / Toyota">
+                    </div>
+                    <div>
+                        <label for="mv_value_1" class="block text-sm font-medium text-gray-700 mb-1">Current Value</label>
+                        <input type="number" step="0.01" id="mv_value_1" name="mv_value_1" class="input-field" placeholder="e.g., 25000.00">
+                    </div>
+                    <div>
+                        <label for="mv_loan_1" class="block text-sm font-medium text-gray-700 mb-1">Loan Balance</label>
+                        <input type="number" step="0.01" id="mv_loan_1" name="mv_loan_1" class="input-field" placeholder="e.g., 10000.00">
+                    </div>
+                </div>
+            </div>
+
+             <!-- SECTION 4: INCOME & EXPENSES -->
+            <div class="mb-10">
+                <h2 class="text-2xl font-semibold text-gray-700 mb-4">4. Monthly Cash Flow (Income and Outflows)</h2>
+                <p class="text-sm text-gray-500 mb-4">Provide estimated monthly figures.</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Income (Inflows) -->
+                    <div class="space-y-4">
+                        <h3 class="font-semibold text-lg text-green-700">Monthly Inflows</h3>
+                        <div>
+                            <label for="net_employed_income" class="block text-sm font-medium text-gray-700 mb-1">Employed Income (Net)</label>
+                            <input type="number" step="0.01" id="net_employed_income" name="net_employed_income" required class="input-field" placeholder="e.g., 5000.00">
+                        </div>
+                    </div>
+
+                    <!-- Expenses (Outflows) -->
+                    <div class="space-y-4">
+                        <h3 class="font-semibold text-lg text-red-700">Monthly Outflows</h3>
+                        <div>
+                            <label for="utilities_expense" class="block text-sm font-medium text-gray-700 mb-1">Utilities</label>
+                            <input type="number" step="0.01" id="utilities_expense" name="utilities_expense" class="input-field" placeholder="e.g., 200.00">
+                        </div>
+                        <div>
+                            <label for="transport_expense" class="block text-sm font-medium text-gray-700 mb-1">Transportation</label>
+                            <input type="number" step="0.01" id="transport_expense" name="transport_expense" class="input-field" placeholder="e.g., 350.00">
+                        </div>
+                        <div>
+                            <label for="other_living_expense" class="block text-sm font-medium text-gray-700 mb-1">Other Living Expenses (Food, etc.)</label>
+                            <input type="number" step="0.01" id="other_living_expense" name="other_living_expense" class="input-field" placeholder="e.g., 1000.00">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SUBMISSION BUTTON -->
+            <div class="mt-8 pt-4 border-t text-center">
+                <button type="submit" class="w-full sm:w-auto px-8 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-lg hover:bg-indigo-700 transition duration-200 focus:outline-none focus:ring-4 focus:ring-indigo-300">
+                    Submit Confidential Statement
+                </button>
+                <p class="mt-4 text-xs text-gray-500">All data submitted is handled with strict confidentiality.</p>
+            </div>
+
+        </form>
+    </div>
+
+    <!-- Minimal success page (would be in templates/success.html in a real project) -->
+    <div id="success-content" class="hidden max-w-xl mx-auto mt-20 bg-green-50 p-10 rounded-2xl shadow-2xl border-4 border-green-300 text-center">
+        <h2 class="text-3xl font-bold text-green-800 mb-4">Submission Successful!</h2>
+        <p class="text-green-700">Your Confidential Statement of Affairs has been securely recorded.</p>
+        <p class="mt-4 text-sm text-green-600">Thank you for providing the necessary information.</p>
+        <a href="/" class="mt-6 inline-block px-6 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition duration-200">Return to Form</a>
+    </div>
+
+</body>
+
+<!-- JavaScript to simulate success.html for the single file output -->
+<script>
+    // This is purely for demonstration within a single HTML file environment.
+    // In the Flask structure above, the Python redirect handles the navigation.
+
+    function renderTemplate(templateName) {
+        const formContent = document.getElementById('form-content');
+        const successContent = document.getElementById('success-content');
+        
+        if (templateName === 'form.html') {
+            formContent.classList.remove('hidden');
+            successContent.classList.add('hidden');
+        } else if (templateName === 'success.html') {
+            formContent.classList.add('hidden');
+            successContent.classList.remove('hidden');
+        }
+    }
+
+    // Since this is technically form.html, we render the form initially
+    renderTemplate('form.html');
+</script>
+</html>
