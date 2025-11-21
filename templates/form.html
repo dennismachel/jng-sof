@@ -8,156 +8,371 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
         .input-field {
-            /* Replaced Tailwind @apply with plain CSS so the page works without a build step. */
             width: 100%;
-            padding: 0.75rem; /* p-3 */
-            border: 1px solid #D1D5DB; /* border-gray-300 */
-            border-radius: 0.5rem; /* rounded-lg */
-            transition: box-shadow 150ms, border-color 150ms; /* transition duration-150 */
+            padding: 0.75rem;
+            border: 1px solid #D1D5DB;
+            border-radius: 0.5rem;
+            transition: box-shadow 150ms, border-color 150ms;
         }
-
         .input-field:focus {
             outline: none;
-            box-shadow: 0 0 0 4px rgba(99,102,241,0.15); /* approximate ring-indigo-500 */
-            border-color: #6366F1; /* indigo-500 */
+            box-shadow: 0 0 0 4px rgba(99,102,241,0.15);
+            border-color: #6366F1;
+        }
+        .table-header {
+            padding: 0.5rem 1rem;
+            text-align: left;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #374151;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            background-color: #F9FAFB;
+            border-bottom: 1px solid #E5E7EB;
+        }
+        .table-cell {
+            padding: 0.5rem;
+            border-bottom: 1px solid #E5E7EB;
+        }
+        .section-header {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #374151;
+            border-bottom: 1px solid #D1D5DB;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+            margin-top: 2rem;
         }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen p-4 sm:p-8">
 
-    <!-- Main Content: Form -->
-    <div id="form-content" class="max-w-4xl mx-auto bg-white p-6 sm:p-10 rounded-2xl shadow-2xl">
+    <div class="max-w-7xl mx-auto bg-white p-6 sm:p-10 rounded-2xl shadow-2xl">
         <header class="text-center mb-10">
-            <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-800">Confidential Statement of Affairs</h1>
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-800">JN Group Confidential Statement of Affairs</h1>
             <p class="mt-2 text-lg text-indigo-600">Employee Data & Financial Disclosure</p>
         </header>
         
-        <form method="POST" action="/submit">
+        <form method="POST" action="{{ url_for('submit') }}">
             
             <!-- SECTION 1: PERSONAL DETAILS -->
             <div class="mb-8 border-b pb-4">
-                <h2 class="text-2xl font-semibold text-gray-700 mb-4">1. Personal Information</h2>
+                <h2 class="section-header">1. Personal Information</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                        <input type="text" id="name" name="name" required class="input-field" placeholder="John Doe">
+                        <input type="text" id="name" name="name" required class="input-field" placeholder="First Name Last Name">
+                    </div>
+                    <div>
+                        <label for="employee_id" class="block text-sm font-medium text-gray-700 mb-1">Employee ID</label>
+                        <input type="text" id="employee_id" name="employee_id" required class="input-field" placeholder="e.g., 123456">
                     </div>
                 </div>
             </div>
-
-            <!-- SECTION 2: ASSETS & LIABILITIES SUMMARY -->
-            <div class="mb-8 border-b pb-4">
-                <h2 class="text-2xl font-semibold text-gray-700 mb-4">2. Summary of Assets & Liabilities</h2>
-                <p class="text-sm text-gray-500 mb-4">Provide the total estimated value for your holdings and debts.</p>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Assets -->
-                    <div>
-                        <label for="total_assets" class="block text-sm font-medium text-gray-700 mb-1">Total Estimated Assets (All Types)</label>
-                        <input type="number" step="0.01" id="total_assets" name="total_assets" required class="input-field" placeholder="e.g., 500000.00">
-                    </div>
-                    <!-- Liabilities -->
-                    <div>
-                        <label for="total_liabilities" class="block text-sm font-medium text-gray-700 mb-1">Total Estimated Liabilities (All Loans/Debts)</label>
-                        <input type="number" step="0.01" id="total_liabilities" name="total_liabilities" required class="input-field" placeholder="e.g., 200000.00">
-                    </div>
-                </div>
-            </div>
-
-            <!-- SECTION 3: DETAILED SCHEDULES (Motor Vehicle Example) -->
-            <div class="mb-8 border-b pb-4 bg-indigo-50 p-6 rounded-xl">
-                <h2 class="text-2xl font-semibold text-gray-700 mb-4">3. Detailed Schedule: Motor Vehicles (Example)</h2>
-                <p class="text-sm text-gray-600 mb-4">Provide details for your primary motor vehicle.</p>
-                <!-- Only one vehicle shown for brevity; extend this section for multiple vehicles -->
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                        <label for="mv_type_1" class="block text-sm font-medium text-gray-700 mb-1">Type / Make</label>
-                        <input type="text" id="mv_type_1" name="mv_type_1" class="input-field" placeholder="Sedan / Toyota">
-                    </div>
-                    <div>
-                        <label for="mv_value_1" class="block text-sm font-medium text-gray-700 mb-1">Current Value</label>
-                        <input type="number" step="0.01" id="mv_value_1" name="mv_value_1" class="input-field" placeholder="e.g., 25000.00">
-                    </div>
-                    <div>
-                        <label for="mv_loan_1" class="block text-sm font-medium text-gray-700 mb-1">Loan Balance</label>
-                        <input type="number" step="0.01" id="mv_loan_1" name="mv_loan_1" class="input-field" placeholder="e.g., 10000.00">
-                    </div>
-                </div>
-            </div>
-
-             <!-- SECTION 4: INCOME & EXPENSES -->
-            <div class="mb-10">
-                <h2 class="text-2xl font-semibold text-gray-700 mb-4">4. Monthly Cash Flow (Income and Outflows)</h2>
-                <p class="text-sm text-gray-500 mb-4">Provide estimated monthly figures.</p>
+            
+            <!-- SECTION 2: ASSETS & LIABILITIES (Two-Column Summary) -->
+            <h2 class="section-header">2. Details of Assets & Liabilities</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Income (Inflows) -->
-                    <div class="space-y-4">
-                        <h3 class="font-semibold text-lg text-green-700">Monthly Inflows</h3>
-                        <div>
-                            <label for="net_employed_income" class="block text-sm font-medium text-gray-700 mb-1">Employed Income (Net)</label>
-                            <input type="number" step="0.01" id="net_employed_income" name="net_employed_income" required class="input-field" placeholder="e.g., 5000.00">
+                <!-- COLUMN 1: ASSETS -->
+                <div>
+                    <h3 class="text-xl font-semibold text-green-700 mb-4 border-b pb-2">ASSETS</h3>
+                    <div class="space-y-3">
+                        {% set asset_fields = [
+                            ('Real Estate', 'real_estate_summary'),
+                            ('Motor Vehicle(s)*', 'motor_vehicles_summary'),
+                            ('Furniture & Equipment', 'furniture_equipment'),
+                            ('Life Insurance* (Total Cash Value)', 'life_insurance_cash_value'),
+                            ('Other Non-Cash Assets*', 'other_non_cash_assets_summary'),
+                            ('Amounts Owed To You', 'amounts_owed_to_you'),
+                            ('Savings/Deposits A/C', 'savings_deposits'),
+                            ('Other Accounts', 'other_accounts'),
+                            ('Other Investments*', 'other_investments')
+                        ] %}
+                        
+                        {% for label, name in asset_fields %}
+                        <div class="flex justify-between items-center">
+                            <label class="text-sm font-medium text-gray-700">{{ label }}</label>
+                            <input type="number" step="0.01" name="{{ name }}" class="w-1/3 p-2 text-right border rounded-lg bg-green-50" placeholder="0.00" value="0.00">
+                        </div>
+                        {% endfor %}
+                        
+                        <div class="flex justify-between items-center pt-3 border-t border-gray-300 font-bold text-gray-800">
+                            <span>TOTAL ASSETS</span>
+                            <span id="total_assets_display" class="text-lg text-green-800">$0.00</span>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Expenses (Outflows) -->
-                    <div class="space-y-4">
-                        <h3 class="font-semibold text-lg text-red-700">Monthly Outflows</h3>
-                        <div>
-                            <label for="utilities_expense" class="block text-sm font-medium text-gray-700 mb-1">Utilities</label>
-                            <input type="number" step="0.01" id="utilities_expense" name="utilities_expense" class="input-field" placeholder="e.g., 200.00">
+                <!-- COLUMN 2: LIABILITIES -->
+                <div>
+                    <h3 class="text-xl font-semibold text-red-700 mb-4 border-b pb-2">LIABILITIES</h3>
+                    <div class="space-y-3">
+                        {% set liability_fields = [
+                            ('Loan(s) on Real Estate*', 'loan_real_estate'),
+                            ('Loan(s) on Motor Vehicle(s)', 'loan_motor_vehicles'),
+                            ('Loan on Furniture & Equipment', 'loan_furniture_equipment'),
+                            ('Current Account Overdraft', 'current_account_overdraft'),
+                            ('Other Loans Payable To You', 'other_loans_payable'),
+                            ('Other Liabilities Not Described Above', 'other_liabilities_not_described')
+                        ] %}
+                        
+                        {% for label, name in liability_fields %}
+                        <div class="flex justify-between items-center">
+                            <label class="text-sm font-medium text-gray-700">{{ label }}</label>
+                            <input type="number" step="0.01" name="{{ name }}" class="w-1/3 p-2 text-right border rounded-lg bg-red-50" placeholder="0.00" value="0.00">
                         </div>
-                        <div>
-                            <label for="transport_expense" class="block text-sm font-medium text-gray-700 mb-1">Transportation</label>
-                            <input type="number" step="0.01" id="transport_expense" name="transport_expense" class="input-field" placeholder="e.g., 350.00">
+                        {% endfor %}
+
+                        <div class="pt-3 border-t border-gray-300">
+                             <div class="flex justify-between items-center font-bold text-gray-800">
+                                <span>TOTAL LIABILITIES</span>
+                                <span id="total_liabilities_display" class="text-lg text-red-800">$0.00</span>
+                            </div>
+                            <div class="flex justify-between items-center mt-3 font-extrabold text-xl text-indigo-700">
+                                <span>NET WORTH (Assets less Liabilities)</span>
+                                <span id="net_worth_display">$0.00</span>
+                            </div>
                         </div>
-                        <div>
-                            <label for="other_living_expense" class="block text-sm font-medium text-gray-700 mb-1">Other Living Expenses (Food, etc.)</label>
-                            <input type="number" step="0.01" id="other_living_expense" name="other_living_expense" class="input-field" placeholder="e.g., 1000.00">
-                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 3: DETAILED SCHEDULES (Tabular Layout) -->
+            <div class="mt-12">
+                <h2 class="section-header">3. Detailed Schedules (If items above marked * are more than one)</h2>
+
+                <!-- A. MOTOR VEHICLE(S) -->
+                <div class="mb-8">
+                    <h3 class="text-xl font-semibold text-gray-700 mb-4">A. Motor Vehicle(s)</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead>
+                                <tr>
+                                    <th class="table-header w-1/12">#</th>
+                                    <th class="table-header w-2/12">Type / Make</th>
+                                    <th class="table-header w-2/12">Year & Model</th>
+                                    <th class="table-header w-2/12">Value</th>
+                                    <th class="table-header w-2/12">Loan Balance</th>
+                                    <th class="table-header w-2/12">Monthly Payment</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for i in range(1, 4) %}
+                                <tr>
+                                    <td class="table-cell">{{ i }}.</td>
+                                    <td class="table-cell"><input type="text" name="mv_type_make_{{ i }}" class="input-field p-1 text-sm" placeholder="e.g., Sedan/Toyota"></td>
+                                    <td class="table-cell"><input type="text" name="mv_year_model_{{ i }}" class="input-field p-1 text-sm" placeholder="e.g., 2020 Corolla"></td>
+                                    <td class="table-cell"><input type="number" step="0.01" name="mv_value_{{ i }}" class="input-field p-1 text-sm text-right" value="0.00"></td>
+                                    <td class="table-cell"><input type="number" step="0.01" name="mv_loan_balance_{{ i }}" class="input-field p-1 text-sm text-right" value="0.00"></td>
+                                    <td class="table-cell"><input type="number" step="0.01" name="mv_monthly_payment_{{ i }}" class="input-field p-1 text-sm text-right" value="0.00"></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- B. REAL ESTATE HOLDING(S) -->
+                <div class="mb-8">
+                    <h3 class="text-xl font-semibold text-gray-700 mb-4">B. Real Estate Holding(s)</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead>
+                                <tr>
+                                    <th class="table-header w-1/12">#</th>
+                                    <th class="table-header w-2/12">Address(es)</th>
+                                    <th class="table-header w-1/12">Valuation</th>
+                                    <th class="table-header w-2/12">Existing Loan Balance</th>
+                                    <th class="table-header w-2/12">Monthly Payment</th>
+                                    <th class="table-header w-2/12">Account Number</th>
+                                    <th class="table-header w-2/12">Lender</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for i in range(1, 4) %}
+                                <tr>
+                                    <td class="table-cell">{{ i }}.</td>
+                                    <td class="table-cell"><input type="text" name="re_address_{{ i }}" class="input-field p-1 text-sm" placeholder="Address"></td>
+                                    <td class="table-cell"><input type="number" step="0.01" name="re_valuation_{{ i }}" class="input-field p-1 text-sm text-right" value="0.00"></td>
+                                    <td class="table-cell"><input type="number" step="0.01" name="re_loan_balance_{{ i }}" class="input-field p-1 text-sm text-right" value="0.00"></td>
+                                    <td class="table-cell"><input type="number" step="0.01" name="re_monthly_payment_{{ i }}" class="input-field p-1 text-sm text-right" value="0.00"></td>
+                                    <td class="table-cell"><input type="text" name="re_account_number_{{ i }}" class="input-field p-1 text-sm" placeholder="A/C #"></td>
+                                    <td class="table-cell"><input type="text" name="re_lender_{{ i }}" class="input-field p-1 text-sm" placeholder="Lender Name"></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- C. OTHER NON-CASH ASSETS, INVESTMENTS, ETC. -->
+                <div class="mb-8">
+                    <h3 class="text-xl font-semibold text-gray-700 mb-4">C. Other Non-Cash Assets, Investments, Etc.</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead>
+                                <tr>
+                                    <th class="table-header w-1/12">#</th>
+                                    <th class="table-header w-3/4">Description</th>
+                                    <th class="table-header w-1/4">Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for i in range(1, 4) %}
+                                <tr>
+                                    <td class="table-cell">{{ i }}.</td>
+                                    <td class="table-cell"><input type="text" name="oa_description_{{ i }}" class="input-field p-1 text-sm" placeholder="Describe the asset (e.g., Stocks, Bonds, Jewelry)"></td>
+                                    <td class="table-cell"><input type="number" step="0.01" name="oa_value_{{ i }}" class="input-field p-1 text-sm text-right" value="0.00"></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 4: CASH FLOW (INCOME & EXPENSES) -->
+            <h2 class="section-header">4. Monthly Cash Flow</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                
+                <!-- COLUMN 1: MONTHLY INFLOWS -->
+                <div class="space-y-4 p-4 border border-green-200 rounded-xl bg-green-50">
+                    <h3 class="text-xl font-semibold text-green-700">A. Monthly Inflows</h3>
+                    
+                    <div>
+                        <label for="employed_income_net" class="block text-sm font-medium text-gray-700 mb-1">Employed Income (Net)</label>
+                        <input type="number" step="0.01" id="employed_income_net" name="employed_income_net" required class="input-field text-right" placeholder="0.00" value="0.00">
+                        <p class="mt-1 text-xs text-gray-500">Based on income statement/chartered accountant statement.</p>
+                    </div>
+                    
+                    <div>
+                        <label for="other_income" class="block text-sm font-medium text-gray-700 mb-1">Other Income (Rent, side income, etc.)</label>
+                        <input type="number" step="0.01" id="other_income" name="other_income" class="input-field text-right" placeholder="0.00" value="0.00">
+                        <p class="mt-1 text-xs text-gray-500">Include estimated rent (if any) from real estate owned.</p>
+                    </div>
+
+                    <div class="flex justify-between items-center pt-3 border-t border-green-300 font-bold text-gray-800">
+                        <span>TOTAL INFLOWS</span>
+                        <span id="total_inflows_display" class="text-lg text-green-800">$0.00</span>
+                    </div>
+                </div>
+
+                <!-- COLUMN 2: MONTHLY OUTFLOWS & RESIDUAL -->
+                <div class="space-y-4 p-4 border border-red-200 rounded-xl bg-red-50">
+                    <h3 class="text-xl font-semibold text-red-700">B. Monthly Outflows</h3>
+                    
+                    <div>
+                        <label for="utilities_expense" class="block text-sm font-medium text-gray-700 mb-1">Utilities</label>
+                        <input type="number" step="0.01" id="utilities_expense" name="utilities_expense" class="input-field text-right" placeholder="0.00" value="0.00">
+                    </div>
+                    
+                    <div>
+                        <label for="transportation_expense" class="block text-sm font-medium text-gray-700 mb-1">Transportation (Gas, Insurance, Maintenance, etc.)</label>
+                        <input type="number" step="0.01" id="transportation_expense" name="transportation_expense" class="input-field text-right" placeholder="0.00" value="0.00">
+                    </div>
+                    
+                    <div>
+                        <label for="other_living_expense" class="block text-sm font-medium text-gray-700 mb-1">Other Living Expenses (Food, Medical, School, etc.)</label>
+                        <input type="number" step="0.01" id="other_living_expense" name="other_living_expense" class="input-field text-right" placeholder="0.00" value="0.00">
+                    </div>
+
+                    <div>
+                        <label for="statutory_deductions" class="block text-sm font-medium text-gray-700 mb-1">Statutory Deductions (Income Tax, NHT, etc.)</label>
+                        <input type="number" step="0.01" id="statutory_deductions" name="statutory_deductions" class="input-field text-right" placeholder="0.00" value="0.00">
+                    </div>
+                    
+                    <div class="flex justify-between items-center pt-3 border-t border-red-300 font-bold text-gray-800">
+                        <span>TOTAL OUTFLOWS</span>
+                        <span id="total_outflows_display" class="text-lg text-red-800">$0.00</span>
+                    </div>
+
+                    <div class="flex justify-between items-center mt-3 font-extrabold text-xl text-indigo-700">
+                        <span>RESIDUAL INCOME AFTER COMMITMENTS >> </span>
+                        <span id="residual_income_display">$0.00</span>
                     </div>
                 </div>
             </div>
 
             <!-- SUBMISSION BUTTON -->
-            <div class="mt-8 pt-4 border-t text-center">
-                <button type="submit" class="w-full sm:w-auto px-8 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-lg hover:bg-indigo-700 transition duration-200 focus:outline-none focus:ring-4 focus:ring-indigo-300">
+            <div class="mt-12 pt-6 border-t border-gray-300 text-center">
+                <button type="submit" class="w-full sm:w-1/2 px-8 py-4 bg-indigo-600 text-white font-semibold rounded-lg shadow-lg hover:bg-indigo-700 transition duration-200 focus:outline-none focus:ring-4 focus:ring-indigo-300">
                     Submit Confidential Statement
                 </button>
-                <p class="mt-4 text-xs text-gray-500">All data submitted is handled with strict confidentiality.</p>
+                <p class="mt-4 text-xs text-gray-500">All data submitted is handled with strict confidentiality and is subject to verification.</p>
             </div>
 
         </form>
     </div>
 
-    <!-- Minimal success page (would be in templates/success.html in a real project) -->
-    <div id="success-content" class="hidden max-w-xl mx-auto mt-20 bg-green-50 p-10 rounded-2xl shadow-2xl border-4 border-green-300 text-center">
-        <h2 class="text-3xl font-bold text-green-800 mb-4">Submission Successful!</h2>
-        <p class="text-green-700">Your Confidential Statement of Affairs has been securely recorded.</p>
-        <p class="mt-4 text-sm text-green-600">Thank you for providing the necessary information.</p>
-        <a href="/" class="mt-6 inline-block px-6 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition duration-200">Return to Form</a>
-    </div>
+    <!-- JavaScript for Live Calculation (for better UX) -->
+    <script>
+        const assetFields = [
+            'real_estate_summary', 'motor_vehicles_summary', 'furniture_equipment', 
+            'life_insurance_cash_value', 'other_non_cash_assets_summary', 'amounts_owed_to_you', 
+            'savings_deposits', 'other_accounts', 'other_investments'
+        ];
+        const liabilityFields = [
+            'loan_real_estate', 'loan_motor_vehicles', 'loan_furniture_equipment', 
+            'current_account_overdraft', 'other_loans_payable', 'other_liabilities_not_described'
+        ];
+        const inflowFields = [
+            'employed_income_net', 'other_income'
+        ];
+        const outflowFields = [
+            'utilities_expense', 'transportation_expense', 'other_living_expense', 'statutory_deductions'
+        ];
 
-</body>
+        function calculateTotals() {
+            // Helper to sum numeric inputs
+            const sumFields = (fields) => fields.reduce((sum, name) => {
+                const input = document.querySelector(`[name="${name}"]`);
+                return sum + (parseFloat(input ? input.value : 0) || 0);
+            }, 0);
 
-<!-- JavaScript to simulate success.html for the single file output -->
-<script>
-    // This is purely for demonstration within a single HTML file environment.
-    // In the Flask structure above, the Python redirect handles the navigation.
+            // 1. ASSET / LIABILITY CALCULATIONS
+            const totalAssets = sumFields(assetFields);
+            const totalLiabilities = sumFields(liabilityFields);
+            const netWorth = totalAssets - totalLiabilities;
 
-    function renderTemplate(templateName) {
-        const formContent = document.getElementById('form-content');
-        const successContent = document.getElementById('success-content');
-        
-        if (templateName === 'form.html') {
-            formContent.classList.remove('hidden');
-            successContent.classList.add('hidden');
-        } else if (templateName === 'success.html') {
-            formContent.classList.add('hidden');
-            successContent.classList.remove('hidden');
+            document.getElementById('total_assets_display').textContent = `$${totalAssets.toFixed(2)}`;
+            document.getElementById('total_liabilities_display').textContent = `$${totalLiabilities.toFixed(2)}`;
+            document.getElementById('net_worth_display').textContent = `$${netWorth.toFixed(2)}`;
+
+            // 2. CASH FLOW CALCULATIONS
+            const totalInflows = sumFields(inflowFields);
+            const totalOutflows = sumFields(outflowFields);
+            const residualIncome = totalInflows - totalOutflows;
+
+            document.getElementById('total_inflows_display').textContent = `$${totalInflows.toFixed(2)}`;
+            document.getElementById('total_outflows_display').textContent = `$${totalOutflows.toFixed(2)}`;
+            
+            const residualDisplay = document.getElementById('residual_income_display');
+            residualDisplay.textContent = `$${residualIncome.toFixed(2)}`;
+            
+            // Highlight residual income based on value
+            residualDisplay.classList.remove('text-red-600', 'text-green-600');
+            if (residualIncome < 0) {
+                residualDisplay.classList.add('text-red-600');
+            } else {
+                residualDisplay.classList.add('text-green-600');
+            }
         }
-    }
 
-    // Since this is technically form.html, we render the form initially
-    renderTemplate('form.html');
-</script>
+        // Attach event listeners to all relevant input fields
+        document.addEventListener('DOMContentLoaded', () => {
+            const allCalculationFields = [
+                ...assetFields, ...liabilityFields, 
+                ...inflowFields, ...outflowFields
+            ].map(name => document.querySelector(`[name="${name}"]`)).filter(Boolean);
+
+            allCalculationFields.forEach(input => {
+                input.addEventListener('input', calculateTotals);
+            });
+
+            // Initial calculation on load
+            calculateTotals();
+        });
+    </script>
+</body>
 </html>
