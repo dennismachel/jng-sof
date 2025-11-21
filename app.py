@@ -14,7 +14,7 @@ DATABASE_FILE = 'statement_of_affairs.duckdb'
 ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'admin@jngroup.com')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'secure_admin_password_123')
 ALLOWED_DOMAINS = ('@corporate.com', '@jngroup.com', '@jnbank.com')
-SESSION_TIMEOUT_MINUTES = 3 
+SESSION_TIMEOUT_MINUTES = 10 
 
 # --- DuckDB Schema Definition ---
 SCHEMA = """
