@@ -8,19 +8,7 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
         .input-field {
-            /* Replaced Tailwind @apply (which requires a build step) with equivalent plain CSS
-               so the styles work in the browser without PostCSS/Tailwind processing. */
-            width: 100%;
-            padding: 0.75rem; /* p-3 */
-            border: 1px solid #D1D5DB; /* border-gray-300 */
-            border-radius: 0.5rem; /* rounded-lg */
-            transition: box-shadow 150ms, border-color 150ms; /* transition duration-150 */
-        }
-
-        .input-field:focus {
-            outline: none;
-            box-shadow: 0 0 0 4px rgba(99,102,241,0.15); /* approximate ring-indigo-500 */
-            border-color: #6366F1; /* indigo-500 */
+            @apply w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150;
         }
     </style>
 </head>
@@ -55,8 +43,9 @@
             </button>
         </form>
 
-        <div class="mt-6 text-center text-sm">
-            <a href="{{ url_for('admin') }}" class="text-indigo-600 hover:text-indigo-800 font-medium">Admin Panel</a>
+        <div class="mt-6 text-center text-sm space-y-2">
+            <a href="{{ url_for('register') }}" class="block text-indigo-600 hover:text-indigo-800 font-medium border-t pt-2 mt-2">Need an account? Register Here.</a>
+            <a href="{{ url_for('admin') }}" class="text-gray-500 hover:text-gray-700 font-medium">Admin Panel Access</a>
         </div>
     </div>
 
