@@ -13,7 +13,7 @@ DATABASE_FILE = 'statement_of_affairs.duckdb'
 # IMPORTANT: Use a strong, unique key. Get this from environment variables in production.
 ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'admin@jngroup.com')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'secure_admin_password_123')
-ALLOWED_DOMAINS = ('@jngroup.com', '@jnbank.com')
+ALLOWED_DOMAINS = ('@corporate.com', '@jngroup.com', '@jnbank.com')
 SESSION_TIMEOUT_MINUTES = 3 
 
 # --- DuckDB Schema Definition ---
@@ -21,6 +21,7 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS StatementOfAffairs (
     submission_id VARCHAR PRIMARY KEY,
     name VARCHAR,
+    employee_id VARCHAR,
     date_submitted TIMESTAMP,
     
     -- SECTION 1: ASSETS SUMMARY (Matching the two-column layout)
@@ -95,7 +96,10 @@ def check_auth(is_admin_required=False):
     return True
 
 def validate_corporate_email(email):
-    """Checks if the email ends with one of the allowed domains."""
+    """Checks if the email ends with one of the allowed domains, case-insensitive and trims whitespace."""
+    if not email:
+        return False
+    email = email.strip().lower()
     return any(email.endswith(domain) for domain in ALLOWED_DOMAINS)
 
 @app.before_request
@@ -369,6 +373,7 @@ def submit():
         # Collect all parameters in a tuple for the parameterized query
         params = (
             data.get('name'),
+            data.get('employee_id'),
             real_estate_summary, motor_vehicles_summary, furniture_equipment, life_insurance_cash_value, 
             other_non_cash_assets_summary, amounts_owed_to_you, savings_deposits, other_accounts, other_investments, total_assets, 
             loan_real_estate, loan_motor_vehicles, loan_furniture_equipment, current_account_overdraft, 
@@ -382,7 +387,7 @@ def submit():
         # Use parameterized INSERT query (safer than f-strings)
         conn.execute("""
             INSERT INTO StatementOfAffairs (
-                submission_id, name, date_submitted,
+                submission_id, name, employee_id, date_submitted,
                 
                 real_estate_summary, motor_vehicles_summary, furniture_equipment, life_insurance_cash_value, 
                 other_non_cash_assets_summary, amounts_owed_to_you, savings_deposits, other_accounts, other_investments, total_assets, 
@@ -395,7 +400,7 @@ def submit():
                 employed_income_net, utilities_expense, transportation_expense, other_living_expense, 
                 other_income, statutory_deductions, total_inflows, total_outflows, residual_income
             ) VALUES (
-                uuid(), ?, now(), 
+                uuid(), ?, ?, now(), 
                 
                 ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
                 
