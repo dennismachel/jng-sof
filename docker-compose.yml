@@ -1,0 +1,41 @@
+version: '3.9'
+
+services:
+  flask_app:
+    container_name: jngsof
+    build: .
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    environment:
+      FLASK_ENV: development
+      POSTGRES_HOST: db
+      POSTGRES_PORT: '5433'
+      POSTGRES_DB: statement_of_affairs
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:15
+    container_name: db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: statement_of_affairs
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata: {}

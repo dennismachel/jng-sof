@@ -1,0 +1,10 @@
+Dockerfile
+README.md
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.pytest_cache/
+# Local env files (do not copy into image build context)
+.env
+.env.local

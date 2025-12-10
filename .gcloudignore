@@ -1,0 +1,19 @@
+# Files to exclude from Cloud Build uploads
+# Exclude local environment files and secrets
+.env
+.env.local
+
+# Python artifacts
+__pycache__/
+*.pyc
+
+# Git
+.git
+
+# Docker artifacts
+.dockerignore
+.gitignore
+
+# Local dev
+venv/
+node_modules/

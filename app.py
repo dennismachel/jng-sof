@@ -1,5 +1,46 @@
+
 import os
-import duckdb
+import psycopg2
+import psycopg2.extras
+from dotenv import load_dotenv
+import sqlite3
+
+# --- Database existence check ---
+def ensure_database_exists():
+    """
+    Checks if the target database exists, and creates it if not.
+    Only runs if all required env vars are set and not in testing/sqlite mode.
+    """
+    dbname = os.environ.get('POSTGRES_DB')
+    user = os.environ.get('POSTGRES_USER')
+    password = os.environ.get('POSTGRES_PASSWORD')
+    host = os.environ.get('POSTGRES_HOST')
+    port = os.environ.get('POSTGRES_PORT', '5432')
+    # Only run if all required vars are present
+    if not all([dbname, user, password, host]):
+        return
+    # Skip if running in test/sqlite mode
+    if os.environ.get('USE_SQLITE_TESTING') == '1':
+        return
+    try:
+        # Connect to default 'postgres' DB
+        conn = psycopg2.connect(
+            dbname='postgres', user=user, password=password, host=host, port=port
+        )
+        conn.autocommit = True
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1 FROM pg_database WHERE datname = %s", (dbname,))
+            exists = cur.fetchone()
+            if not exists:
+                cur.execute(f'CREATE DATABASE "{dbname}"')
+        conn.close()
+    except Exception as e:
+        print(f"[WARN] Could not check/create database: {e}")
+
+load_dotenv()
+
+# Ensure DB exists before app starts
+ensure_database_exists()
 import secrets
 from flask import Flask, render_template, request, redirect, url_for, session, abort, g
 import uuid
@@ -9,81 +50,185 @@ import time
 from flask_bcrypt import Bcrypt
 
 # --- Configuration ---
-DATABASE_FILE = 'statement_of_affairs.duckdb'
+# Postgres connection settings are pulled from environment variables or .env.
+# Do NOT commit credentials. Use .env for local development and real environment variables in production.
+POSTGRES_HOST = os.environ.get('POSTGRES_HOST')
+POSTGRES_PORT = os.environ.get('POSTGRES_PORT', '5432')
+POSTGRES_DB = os.environ.get('POSTGRES_DB')
+POSTGRES_USER = os.environ.get('POSTGRES_USER')
+POSTGRES_PASSWORD = os.environ.get('POSTGRES_PASSWORD')
+#host=f"/cloudsql/{os.environ.get('INSTANCE_CONNECTION_NAME')}" if os.environ.get('INSTANCE_CONNECTION_NAME') else POSTGRES_HOST #GCP
 # IMPORTANT: Use a strong, unique key. Get this from environment variables in production.
-ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'admin@jngroup.com')
-ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'secure_admin_password_123')
-ALLOWED_DOMAINS = ('@corporate.com', '@jngroup.com', '@jnbank.com')
+ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL')
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
+ALLOWED_DOMAINS = ('@jngroup.com', '@jnbank.com')
 SESSION_TIMEOUT_MINUTES = 10 
 
-# --- DuckDB Schema Definition ---
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS StatementOfAffairs (
-    submission_id VARCHAR PRIMARY KEY,
+    submission_id UUID PRIMARY KEY,
     name VARCHAR,
     employee_id VARCHAR,
-    date_submitted TIMESTAMP,
-    
-    -- SECTION 1: ASSETS SUMMARY (Matching the two-column layout)
-    real_estate_summary DOUBLE,
-    motor_vehicles_summary DOUBLE,
-    furniture_equipment DOUBLE,
-    life_insurance_cash_value DOUBLE,
-    other_non_cash_assets_summary DOUBLE,
-    amounts_owed_to_you DOUBLE,
-    savings_deposits DOUBLE,
-    other_accounts DOUBLE,
-    other_investments DOUBLE,
-    total_assets DOUBLE, -- Calculated
-    
-    -- SECTION 1: LIABILITIES SUMMARY
-    loan_real_estate DOUBLE,
-    loan_motor_vehicles DOUBLE,
-    loan_furniture_equipment DOUBLE,
-    current_account_overdraft DOUBLE,
-    other_loans_payable DOUBLE,
-    other_liabilities_not_described DOUBLE,
-    total_liabilities DOUBLE, -- Calculated
-    net_worth DOUBLE, -- Calculated
-    
-    -- SECTION 2: DETAILED SCHEDULES (Stored as JSON for multiple entries)
-    motor_vehicle_schedule JSON, 
-    real_estate_schedule JSON,    
-    other_non_cash_assets_schedule JSON,
-    
-    -- SECTION 3: INCOME & EXPENSES
-    employed_income_net DOUBLE,
-    utilities_expense DOUBLE,
-    transportation_expense DOUBLE,
-    other_living_expense DOUBLE,
-    other_income DOUBLE,
-    statutory_deductions DOUBLE,
-    total_inflows DOUBLE, -- Calculated
-    total_outflows DOUBLE, -- Calculated
-    residual_income DOUBLE -- Calculated
+    date_submitted TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    real_estate_summary DOUBLE PRECISION,
+    motor_vehicles_summary DOUBLE PRECISION,
+    furniture_equipment DOUBLE PRECISION,
+    life_insurance_cash_value DOUBLE PRECISION,
+    other_non_cash_assets_summary DOUBLE PRECISION,
+    amounts_owed_to_you DOUBLE PRECISION,
+    savings_deposits DOUBLE PRECISION,
+    other_accounts DOUBLE PRECISION,
+    other_investments DOUBLE PRECISION,
+    total_assets DOUBLE PRECISION,
+    loan_real_estate DOUBLE PRECISION,
+    loan_motor_vehicles DOUBLE PRECISION,
+    loan_furniture_equipment DOUBLE PRECISION,
+    current_account_overdraft DOUBLE PRECISION,
+    other_loans_payable DOUBLE PRECISION,
+    other_liabilities_not_described DOUBLE PRECISION,
+    total_liabilities DOUBLE PRECISION,
+    net_worth DOUBLE PRECISION,
+    motor_vehicle_schedule JSONB,
+    real_estate_schedule JSONB,
+    other_non_cash_assets_schedule JSONB,
+    employed_income_net DOUBLE PRECISION,
+    utilities_expense DOUBLE PRECISION,
+    transportation_expense DOUBLE PRECISION,
+    other_living_expense DOUBLE PRECISION,
+    other_income DOUBLE PRECISION,
+    statutory_deductions DOUBLE PRECISION,
+    total_inflows DOUBLE PRECISION,
+    total_outflows DOUBLE PRECISION,
+    residual_income DOUBLE PRECISION
 );
 
 CREATE TABLE IF NOT EXISTS Users (
-    user_id VARCHAR PRIMARY KEY,
+    user_id UUID PRIMARY KEY,
     email VARCHAR UNIQUE NOT NULL,
-    -- Store bcrypt hash (BLOB/BYTEA is ideal, but TEXT is acceptable for DuckDB/SQLite for portability/demo)
-    password TEXT NOT NULL, 
+    password TEXT NOT NULL,
     is_admin BOOLEAN DEFAULT FALSE
 );
 """
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'default_secret_key_change_me_in_prod') 
-app.config['PERMANENT_SESSION_LIFETIME'] = 180 # 3 minutes in seconds
+# Load environment-specific config (APP_ENV or FLASK_ENV). Default to development.
+from config import DevelopmentConfig, ProductionConfig, TestingConfig
+
+env = os.environ.get('APP_ENV', os.environ.get('FLASK_ENV', 'development'))
+if env.lower() == 'production':
+    app.config.from_object(ProductionConfig)
+
+elif env.lower() == 'testing':
+    app.config.from_object(TestingConfig)
+else:
+    app.config.from_object(DevelopmentConfig)
+
+# Allow overriding via environment for quick tweaks (keeps behavior compatible with tests)
+app.config['FLASK_DEBUG'] = os.environ.get('FLASK_DEBUG', app.config.get('DEBUG'))
 
 # Initialize Bcrypt
 bcrypt = Bcrypt(app)
 
 
 def get_db_connection():
-    """Establishes connection to DuckDB and ensures schema exists."""
-    conn = duckdb.connect(database=DATABASE_FILE, read_only=False)
-    conn.sql(SCHEMA)
+    """Establishes connection to PostgreSQL and ensures schema exists."""
+    # Testing fallback: if Flask testing is enabled or USE_SQLITE_TESTING=1, use sqlite file DB
+    use_sqlite_testing = app.config.get('TESTING', False) or os.environ.get('USE_SQLITE_TESTING') == '1'
+    if use_sqlite_testing:
+        # Use a file-backed sqlite DB so connections across requests see the same data during tests
+        sqlite_path = os.environ.get('TEST_SQLITE_PATH', 'test_db.sqlite3')
+        raw_conn = sqlite3.connect(sqlite_path, check_same_thread=False)
+        raw_conn.row_factory = sqlite3.Row
+
+        # Provide a small wrapper so code using `with conn.cursor() as cur:` still works
+        class CursorWrapper:
+            def __init__(self, raw_cur, conn):
+                self._raw = raw_cur
+                self._conn = conn
+
+            def execute(self, query, params=None):
+                # Translate psycopg2 %s placeholders to sqlite ? placeholders
+                if params is None:
+                    q = query.replace('%s', '?')
+                    return self._raw.execute(q)
+                q = query.replace('%s', '?')
+                return self._raw.execute(q, params)
+
+            def executemany(self, query, seq_of_params):
+                q = query.replace('%s', '?')
+                return self._raw.executemany(q, seq_of_params)
+
+            def fetchone(self):
+                return self._raw.fetchone()
+
+            def fetchall(self):
+                return self._raw.fetchall()
+
+            def close(self):
+                try:
+                    self._raw.close()
+                except Exception:
+                    pass
+
+        class _SqliteConnWrapper:
+            def __init__(self, raw_conn):
+                self._conn = raw_conn
+
+            def cursor(self, *args, **kwargs):
+                raw_cur = self._conn.cursor()
+
+                class _Ctx:
+                    def __init__(self, raw_cur, conn):
+                        self._wrapped = CursorWrapper(raw_cur, conn)
+                        self._conn = conn
+
+                    def __enter__(self):
+                        return self._wrapped
+
+                    def __exit__(self, exc_type, exc, tb):
+                        if exc_type:
+                            self._conn.rollback()
+                        else:
+                            self._conn.commit()
+                        try:
+                            self._wrapped.close()
+                        except Exception:
+                            pass
+
+                return _Ctx(raw_cur, self._conn)
+
+            def close(self):
+                try:
+                    self._conn.close()
+                except Exception:
+                    pass
+
+        conn = _SqliteConnWrapper(raw_conn)
+
+        # Ensure minimal Users table exists for auth tests (other tables optional)
+        with conn.cursor() as cur:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS Users (
+                    user_id TEXT PRIMARY KEY,
+                    email TEXT UNIQUE NOT NULL,
+                    password TEXT NOT NULL,
+                    is_admin INTEGER DEFAULT 0
+                )
+            """)
+        return conn
+
+    # Production/Postgres path
+    conn = psycopg2.connect(
+        host=POSTGRES_HOST,
+        port=POSTGRES_PORT,
+        dbname=POSTGRES_DB,
+        user=POSTGRES_USER,
+        password=POSTGRES_PASSWORD
+    )
+    conn.autocommit = True
+    with conn.cursor() as cur:
+        cur.execute(SCHEMA)
     return conn
 
 def check_auth(is_admin_required=False):
@@ -133,27 +278,28 @@ def login():
         email = request.form.get('email')
         password = request.form.get('password')
         
-        if not validate_corporate_email(email):
-             return render_template('login.html', error="Invalid email format. Must end with @jngroup.com or @jnbank.com.")
+        #if not validate_corporate_email(email):
+            #return render_template('login.html', error="Invalid email format. Must end with @jngroup.com or @jnbank.com.")
 
         conn = get_db_connection()
-        # Use parameterized query for SELECT
-        user_data = conn.execute("SELECT password, is_admin FROM Users WHERE email = ?", (email,)).fetchone()
+        with conn.cursor() as cur:
+            cur.execute("SELECT password, is_admin FROM Users WHERE email = %s", (email,))
+            user_data = cur.fetchone()
         conn.close()
 
         if user_data:
-            # Check password hash using bcrypt
             stored_hash = user_data[0].encode('utf-8')
             if bcrypt.check_password_hash(stored_hash, password):
                 session['logged_in'] = True
                 session['email'] = email
                 session['is_admin'] = user_data[1]
-                session['last_activity'] = time.time() # Set initial activity time
+                session['last_activity'] = time.time()
                 return redirect(url_for('index'))
-            else:
-                return render_template('login.html', error="Invalid email or password.")
+            # Do not reveal whether the email exists; show a unified message on failure
+            return render_template('login.html', error="Email and password do not match.")
         else:
-            return render_template('login.html', error="Invalid email or password.")
+            # User not found
+            return render_template('login.html', error="Email and password do not match.")
     
     error = "Session timed out due to inactivity." if request.args.get('timeout') else None
     return render_template('login.html', error=error)
@@ -173,29 +319,24 @@ def register():
 
         conn = get_db_connection()
         try:
-            # Use parameterized query to check if user already exists
-            existing_user = conn.execute("SELECT email FROM Users WHERE email = ?", (email,)).fetchone()
-            if existing_user:
-                conn.close()
-                return render_template('register.html', error="Registration failed: This email address is already in use.")
+            with conn.cursor() as cur:
+                cur.execute("SELECT email FROM Users WHERE email = %s", (email,))
+                existing_user = cur.fetchone()
+                if existing_user:
+                    conn.close()
+                    return render_template('register.html', error="Registration failed: This email address is already in use.")
 
-            # Hash the password before storing
-            hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
-
-            # Create new user (non-admin) using parameterized INSERT
-            conn.execute("""
-                INSERT INTO Users (user_id, email, password, is_admin) 
-                VALUES (?, ?, ?, FALSE)
-            """, (str(uuid.uuid4()), email, hashed_password))
+                hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+                cur.execute("""
+                    INSERT INTO Users (user_id, email, password, is_admin)
+                    VALUES (%s, %s, %s, FALSE)
+                """, (str(uuid.uuid4()), email, hashed_password))
             conn.close()
-            
-            # Auto-login the new user
             session['logged_in'] = True
             session['email'] = email
             session['is_admin'] = False
-            session['last_activity'] = time.time() # Set initial activity time
+            session['last_activity'] = time.time()
             return redirect(url_for('index'))
-            
         except Exception as e:
             conn.close()
             return render_template('register.html', error=f"A database error occurred during registration: {e}")
@@ -232,31 +373,29 @@ def admin():
             
             conn = get_db_connection()
             try:
-                # Use parameterized query to check if user already exists
-                existing_user = conn.execute("SELECT email FROM Users WHERE email = ?", (email,)).fetchone()
-                if existing_user:
-                    conn.close()
-                    message = f"Error: User {email} already exists."
-                else:
-                    # Hash the password before storing
-                    hashed_password = bcrypt.generate_password_hash(new_user_password).decode('utf-8')
-                    
-                    # Create new user (non-admin) using parameterized INSERT
-                    conn.execute("""
-                        INSERT INTO Users (user_id, email, password, is_admin) 
-                        VALUES (?, ?, ?, FALSE)
-                    """, (str(uuid.uuid4()), email, hashed_password))
-                    conn.close()
-                    message = f"Success! User {email} created."
+                with conn.cursor() as cur:
+                    cur.execute("SELECT email FROM Users WHERE email = %s", (email,))
+                    existing_user = cur.fetchone()
+                    if existing_user:
+                        conn.close()
+                        message = f"Error: User {email} already exists."
+                    else:
+                        hashed_password = bcrypt.generate_password_hash(new_user_password).decode('utf-8')
+                        cur.execute("""
+                            INSERT INTO Users (user_id, email, password, is_admin)
+                            VALUES (%s, %s, %s, FALSE)
+                        """, (str(uuid.uuid4()), email, hashed_password))
+                        conn.close()
+                        message = f"Success! User {email} created."
             except Exception as e:
                 conn.close()
                 message = f"Database Error: {e}"
 
     conn = get_db_connection()
-    # Parameterized query is not strictly needed here, but kept consistent
-    users = conn.execute("SELECT email, is_admin FROM Users").fetchall()
+    with conn.cursor() as cur:
+        cur.execute("SELECT email, is_admin FROM Users")
+        users = cur.fetchall()
     conn.close()
-
     return render_template('admin.html', message=message, new_user_password=new_user_password, users=users)
 
 
@@ -384,33 +523,34 @@ def submit():
         )
 
         conn = get_db_connection()
-        # Use parameterized INSERT query (safer than f-strings)
-        conn.execute("""
-            INSERT INTO StatementOfAffairs (
-                submission_id, name, employee_id, date_submitted,
-                
-                real_estate_summary, motor_vehicles_summary, furniture_equipment, life_insurance_cash_value, 
-                other_non_cash_assets_summary, amounts_owed_to_you, savings_deposits, other_accounts, other_investments, total_assets, 
-                
-                loan_real_estate, loan_motor_vehicles, loan_furniture_equipment, current_account_overdraft, 
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO StatementOfAffairs (
+                    submission_id, name, employee_id, date_submitted,
+                    real_estate_summary, motor_vehicles_summary, furniture_equipment, life_insurance_cash_value,
+                    other_non_cash_assets_summary, amounts_owed_to_you, savings_deposits, other_accounts, other_investments, total_assets,
+                    loan_real_estate, loan_motor_vehicles, loan_furniture_equipment, current_account_overdraft,
+                    other_loans_payable, other_liabilities_not_described, total_liabilities, net_worth,
+                    motor_vehicle_schedule, real_estate_schedule, other_non_cash_assets_schedule,
+                    employed_income_net, utilities_expense, transportation_expense, other_living_expense,
+                    other_income, statutory_deductions, total_inflows, total_outflows, residual_income
+                ) VALUES (
+                    %s, %s, %s, CURRENT_TIMESTAMP,
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                    %s, %s, %s, %s, %s, %s, %s, %s,
+                    %s::jsonb, %s::jsonb, %s::jsonb,
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s
+                )
+            """, (
+                str(uuid.uuid4()), data.get('name'), data.get('employee_id'),
+                real_estate_summary, motor_vehicles_summary, furniture_equipment, life_insurance_cash_value,
+                other_non_cash_assets_summary, amounts_owed_to_you, savings_deposits, other_accounts, other_investments, total_assets,
+                loan_real_estate, loan_motor_vehicles, loan_furniture_equipment, current_account_overdraft,
                 other_loans_payable, other_liabilities_not_described, total_liabilities, net_worth,
-                
-                motor_vehicle_schedule, real_estate_schedule, other_non_cash_assets_schedule,
-                
-                employed_income_net, utilities_expense, transportation_expense, other_living_expense, 
+                motor_vehicle_schedule_json, real_estate_schedule_json, other_non_cash_assets_schedule_json,
+                employed_income_net, utilities_expense, transportation_expense, other_living_expense,
                 other_income, statutory_deductions, total_inflows, total_outflows, residual_income
-            ) VALUES (
-                uuid(), ?, ?, now(), 
-                
-                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
-                
-                ?, ?, ?, ?, ?, ?, ?, ?,
-                
-                CAST(? AS JSON), CAST(? AS JSON), CAST(? AS JSON),
-                
-                ?, ?, ?, ?, ?, ?, ?, ?, ?
-            )
-        """, params)
+            ))
         conn.close()
 
         # Redirect to a success page
@@ -437,38 +577,49 @@ def view_data():
         abort(403) 
         
     conn = get_db_connection()
-    # Query data using non-parameterized query, safe as no user input is involved
-    data = conn.execute("SELECT * FROM StatementOfAffairs ORDER BY date_submitted DESC").fetchall()
+    with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+        cur.execute("SELECT * FROM StatementOfAffairs ORDER BY date_submitted DESC")
+        data = cur.fetchall()
     conn.close()
     return f"<pre>{data}</pre>"
+
+
+@app.route('/health')
+def health():
+    """Simple health check for Cloud Run / load balancers."""
+    return ("ok", 200)
 
 def initialize_admin_user():
     """Creates the initial admin user if the Users table is empty."""
     conn = get_db_connection()
-    count = conn.execute("SELECT count(*) FROM Users").fetchone()[0]
-    if count == 0:
-        print("--- Creating Initial Admin User ---")
-        # Hash the default admin password
-        hashed_password = bcrypt.generate_password_hash(ADMIN_PASSWORD).decode('utf-8')
-        
-        # Use parameterized INSERT
-        conn.execute("""
-            INSERT INTO Users (user_id, email, password, is_admin) 
-            VALUES (?, ?, ?, TRUE)
-        """, (str(uuid.uuid4()), ADMIN_EMAIL, hashed_password))
-        conn.close()
-        print(f"Admin User created: {ADMIN_EMAIL} / {ADMIN_PASSWORD}")
-        print("---------------------------------")
-    else:
-        conn.close()
+    with conn.cursor() as cur:
+        cur.execute("SELECT count(*) FROM Users")
+        count = cur.fetchone()[0]
+        if count == 0:
+            print("--- Creating Initial Admin User ---")
+            hashed_password = bcrypt.generate_password_hash(ADMIN_PASSWORD).decode('utf-8')
+            cur.execute("""
+                INSERT INTO Users (user_id, email, password, is_admin)
+                VALUES (%s, %s, %s, TRUE)
+            """, (str(uuid.uuid4()), ADMIN_EMAIL, hashed_password))
+            print(f"Admin User created: {ADMIN_EMAIL}")
+            print("(Password is set from environment variables and not printed for security.)")
+            print("---------------------------------")
+    conn.close()
 
 if __name__ == '__main__':
     # Initialize DB connection and create admin user on startup
+    # It MUST be 0.0.0.0, not localhost
+    # It MUST use the PORT environment variable
+    app.debug = True
+    app.run()
     try:
         initialize_admin_user()
     except Exception as e:
         print(f"Database initialization failed: {e}")
     
-    # Run the Flask app
-    app.run(debug=True)
+    # Run the Flask app (local/dev). Respect PORT env var so containerized runs can bind correctly.
+    port = int(os.environ.get('PORT', 5000))
+    host = os.environ.get('HOST', '0.0.0.0')
+    app.run(host="0.0.0.0", port=port, debug=(os.environ.get('FLASK_DEBUG') == '1'))
 

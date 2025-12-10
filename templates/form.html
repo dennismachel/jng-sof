@@ -93,7 +93,10 @@
                         {% for label, name in asset_fields %}
                         <div class="flex justify-between items-center">
                             <label class="text-sm font-medium text-gray-700">{{ label }}</label>
-                            <input type="number" step="0.01" name="{{ name }}" class="w-1/3 p-2 text-right border rounded-lg bg-green-50" placeholder="0.00" value="0.00">
+                            <div class="flex items-center w-1/3 justify-end">
+                                <span class="mr-2 text-sm text-gray-700">$</span>
+                                <input type="number" step="0.01" name="{{ name }}" class="flex-1 p-2 text-right border rounded-lg bg-green-50" placeholder="0.00" value="0.00">
+                            </div>
                         </div>
                         {% endfor %}
                         
@@ -120,7 +123,10 @@
                         {% for label, name in liability_fields %}
                         <div class="flex justify-between items-center">
                             <label class="text-sm font-medium text-gray-700">{{ label }}</label>
-                            <input type="number" step="0.01" name="{{ name }}" class="w-1/3 p-2 text-right border rounded-lg bg-red-50" placeholder="0.00" value="0.00">
+                            <div class="flex items-center w-1/3 justify-end">
+                                <span class="mr-2 text-sm text-gray-700">$</span>
+                                <input type="number" step="0.01" name="{{ name }}" class="flex-1 p-2 text-right border rounded-lg bg-red-50" placeholder="0.00" value="0.00">
+                            </div>
                         </div>
                         {% endfor %}
 
@@ -163,9 +169,24 @@
                                     <td class="table-cell">{{ i }}.</td>
                                     <td class="table-cell"><input type="text" name="mv_type_make_{{ i }}" class="input-field p-1 text-sm" placeholder="e.g., Sedan/Toyota"></td>
                                     <td class="table-cell"><input type="text" name="mv_year_model_{{ i }}" class="input-field p-1 text-sm" placeholder="e.g., 2020 Corolla"></td>
-                                    <td class="table-cell"><input type="number" step="0.01" name="mv_value_{{ i }}" class="input-field p-1 text-sm text-right" value="0.00"></td>
-                                    <td class="table-cell"><input type="number" step="0.01" name="mv_loan_balance_{{ i }}" class="input-field p-1 text-sm text-right" value="0.00"></td>
-                                    <td class="table-cell"><input type="number" step="0.01" name="mv_monthly_payment_{{ i }}" class="input-field p-1 text-sm text-right" value="0.00"></td>
+                                    <td class="table-cell">
+                                        <div class="flex items-center justify-end">
+                                            <span class="mr-2 text-sm text-gray-700">$</span>
+                                            <input type="number" step="0.01" name="mv_value_{{ i }}" class="input-field p-1 text-sm text-right" value="0.00">
+                                        </div>
+                                    </td>
+                                    <td class="table-cell">
+                                        <div class="flex items-center justify-end">
+                                            <span class="mr-2 text-sm text-gray-700">$</span>
+                                            <input type="number" step="0.01" name="mv_loan_balance_{{ i }}" class="input-field p-1 text-sm text-right" value="0.00">
+                                        </div>
+                                    </td>
+                                    <td class="table-cell">
+                                        <div class="flex items-center justify-end">
+                                            <span class="mr-2 text-sm text-gray-700">$</span>
+                                            <input type="number" step="0.01" name="mv_monthly_payment_{{ i }}" class="input-field p-1 text-sm text-right" value="0.00">
+                                        </div>
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -194,9 +215,24 @@
                                 <tr>
                                     <td class="table-cell">{{ i }}.</td>
                                     <td class="table-cell"><input type="text" name="re_address_{{ i }}" class="input-field p-1 text-sm" placeholder="Address"></td>
-                                    <td class="table-cell"><input type="number" step="0.01" name="re_valuation_{{ i }}" class="input-field p-1 text-sm text-right" value="0.00"></td>
-                                    <td class="table-cell"><input type="number" step="0.01" name="re_loan_balance_{{ i }}" class="input-field p-1 text-sm text-right" value="0.00"></td>
-                                    <td class="table-cell"><input type="number" step="0.01" name="re_monthly_payment_{{ i }}" class="input-field p-1 text-sm text-right" value="0.00"></td>
+                                    <td class="table-cell">
+                                        <div class="flex items-center justify-end">
+                                            <span class="mr-2 text-sm text-gray-700">$</span>
+                                            <input type="number" step="0.01" name="re_valuation_{{ i }}" class="input-field p-1 text-sm text-right" value="0.00">
+                                        </div>
+                                    </td>
+                                    <td class="table-cell">
+                                        <div class="flex items-center justify-end">
+                                            <span class="mr-2 text-sm text-gray-700">$</span>
+                                            <input type="number" step="0.01" name="re_loan_balance_{{ i }}" class="input-field p-1 text-sm text-right" value="0.00">
+                                        </div>
+                                    </td>
+                                    <td class="table-cell">
+                                        <div class="flex items-center justify-end">
+                                            <span class="mr-2 text-sm text-gray-700">$</span>
+                                            <input type="number" step="0.01" name="re_monthly_payment_{{ i }}" class="input-field p-1 text-sm text-right" value="0.00">
+                                        </div>
+                                    </td>
                                     <td class="table-cell"><input type="text" name="re_account_number_{{ i }}" class="input-field p-1 text-sm" placeholder="A/C #"></td>
                                     <td class="table-cell"><input type="text" name="re_lender_{{ i }}" class="input-field p-1 text-sm" placeholder="Lender Name"></td>
                                 </tr>
@@ -223,7 +259,12 @@
                                 <tr>
                                     <td class="table-cell">{{ i }}.</td>
                                     <td class="table-cell"><input type="text" name="oa_description_{{ i }}" class="input-field p-1 text-sm" placeholder="Describe the asset (e.g., Stocks, Bonds, Jewelry)"></td>
-                                    <td class="table-cell"><input type="number" step="0.01" name="oa_value_{{ i }}" class="input-field p-1 text-sm text-right" value="0.00"></td>
+                                    <td class="table-cell">
+                                        <div class="flex items-center justify-end">
+                                            <span class="mr-2 text-sm text-gray-700">$</span>
+                                            <input type="number" step="0.01" name="oa_value_{{ i }}" class="input-field p-1 text-sm text-right" value="0.00">
+                                        </div>
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -242,13 +283,19 @@
                     
                     <div>
                         <label for="employed_income_net" class="block text-sm font-medium text-gray-700 mb-1">Employed Income (Net)</label>
-                        <input type="number" step="0.01" id="employed_income_net" name="employed_income_net" required class="input-field text-right" placeholder="0.00" value="0.00">
+                        <div class="flex items-center justify-end">
+                            <span class="mr-2 text-sm text-gray-700">$</span>
+                            <input type="number" step="0.01" id="employed_income_net" name="employed_income_net" required class="input-field text-right" placeholder="0.00" value="0.00">
+                        </div>
                         <p class="mt-1 text-xs text-gray-500">Based on income statement/chartered accountant statement.</p>
                     </div>
                     
                     <div>
                         <label for="other_income" class="block text-sm font-medium text-gray-700 mb-1">Other Income (Rent, side income, etc.)</label>
-                        <input type="number" step="0.01" id="other_income" name="other_income" class="input-field text-right" placeholder="0.00" value="0.00">
+                        <div class="flex items-center justify-end">
+                            <span class="mr-2 text-sm text-gray-700">$</span>
+                            <input type="number" step="0.01" id="other_income" name="other_income" class="input-field text-right" placeholder="0.00" value="0.00">
+                        </div>
                         <p class="mt-1 text-xs text-gray-500">Include estimated rent (if any) from real estate owned.</p>
                     </div>
 
@@ -264,22 +311,34 @@
                     
                     <div>
                         <label for="utilities_expense" class="block text-sm font-medium text-gray-700 mb-1">Utilities</label>
-                        <input type="number" step="0.01" id="utilities_expense" name="utilities_expense" class="input-field text-right" placeholder="0.00" value="0.00">
+                        <div class="flex items-center justify-end">
+                            <span class="mr-2 text-sm text-gray-700">$</span>
+                            <input type="number" step="0.01" id="utilities_expense" name="utilities_expense" class="input-field text-right" placeholder="0.00" value="0.00">
+                        </div>
                     </div>
                     
                     <div>
                         <label for="transportation_expense" class="block text-sm font-medium text-gray-700 mb-1">Transportation (Gas, Insurance, Maintenance, etc.)</label>
-                        <input type="number" step="0.01" id="transportation_expense" name="transportation_expense" class="input-field text-right" placeholder="0.00" value="0.00">
+                        <div class="flex items-center justify-end">
+                            <span class="mr-2 text-sm text-gray-700">$</span>
+                            <input type="number" step="0.01" id="transportation_expense" name="transportation_expense" class="input-field text-right" placeholder="0.00" value="0.00">
+                        </div>
                     </div>
                     
                     <div>
                         <label for="other_living_expense" class="block text-sm font-medium text-gray-700 mb-1">Other Living Expenses (Food, Medical, School, etc.)</label>
-                        <input type="number" step="0.01" id="other_living_expense" name="other_living_expense" class="input-field text-right" placeholder="0.00" value="0.00">
+                        <div class="flex items-center justify-end">
+                            <span class="mr-2 text-sm text-gray-700">$</span>
+                            <input type="number" step="0.01" id="other_living_expense" name="other_living_expense" class="input-field text-right" placeholder="0.00" value="0.00">
+                        </div>
                     </div>
 
                     <div>
                         <label for="statutory_deductions" class="block text-sm font-medium text-gray-700 mb-1">Statutory Deductions (Income Tax, NHT, etc.)</label>
-                        <input type="number" step="0.01" id="statutory_deductions" name="statutory_deductions" class="input-field text-right" placeholder="0.00" value="0.00">
+                        <div class="flex items-center justify-end">
+                            <span class="mr-2 text-sm text-gray-700">$</span>
+                            <input type="number" step="0.01" id="statutory_deductions" name="statutory_deductions" class="input-field text-right" placeholder="0.00" value="0.00">
+                        </div>
                     </div>
                     
                     <div class="flex justify-between items-center pt-3 border-t border-red-300 font-bold text-gray-800">
@@ -306,6 +365,68 @@
     </div>
 
     <!-- JavaScript for Live Calculation (for better UX) -->
+    <script>
+        // Currency formatting helper: display formatted currency but keep raw numeric value in a hidden input
+        (function(){
+            function formatCurrency(value){
+                if (value === '' || value === null || isNaN(Number(value))) return '';
+                return new Intl.NumberFormat('en-US', {style: 'currency', currency: 'USD', minimumFractionDigits:2, maximumFractionDigits:2}).format(Number(value));
+            }
+
+            document.addEventListener('DOMContentLoaded', function(){
+                const numberInputs = Array.from(document.querySelectorAll('input[type="number"]'));
+                numberInputs.forEach(function(inp){
+                    const name = inp.getAttribute('name');
+                    if (!name) return;
+
+                    // create hidden input to retain original name for form submission
+                    const hidden = document.createElement('input');
+                    hidden.type = 'hidden';
+                    hidden.name = name;
+                    hidden.value = inp.value || '';
+
+                    // change visible input to text and remove original name
+                    inp.removeAttribute('name');
+                    inp.type = 'text';
+                    inp.classList.add('currency-input');
+
+                    // insert hidden before visible and set initial display
+                    inp.parentNode.insertBefore(hidden, inp);
+                    if (hidden.value !== '') {
+                        inp.value = formatCurrency(hidden.value);
+                    } else {
+                        inp.value = '';
+                    }
+
+                    // typing: update hidden raw value (unformatted)
+                    inp.addEventListener('input', function(){
+                        const raw = inp.value.replace(/[^0-9.\-]/g, '');
+                        hidden.value = raw;
+                    });
+
+                    // on blur: format nicely
+                    inp.addEventListener('blur', function(){
+                        if (hidden.value === '') {
+                            inp.value = '';
+                            return;
+                        }
+                        inp.value = formatCurrency(hidden.value);
+                    });
+
+                    // on focus: show raw numeric value for easier editing
+                    inp.addEventListener('focus', function(){
+                        inp.value = hidden.value;
+                    });
+                });
+
+                // trigger an initial input event so existing calc code picks up values
+                numberInputs.forEach(function(i){
+                    const ev = new Event('input', {bubbles: true});
+                    i.dispatchEvent(ev);
+                });
+            });
+        })();
+    </script>
     <script>
         const assetFields = [
             'real_estate_summary', 'motor_vehicles_summary', 'furniture_equipment', 
