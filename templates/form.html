@@ -56,19 +56,36 @@
         <form method="POST" action="{{ url_for('submit') }}">
             
             <!-- SECTION 1: PERSONAL DETAILS -->
-            <div class="mb-8 border-b pb-4">
-                <h2 class="section-header">1. Personal Information</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                        <input type="text" id="name" name="name" required class="input-field" placeholder="First Name Last Name">
-                    </div>
-                    <div>
-                        <label for="employee_id" class="block text-sm font-medium text-gray-700 mb-1">Employee ID</label>
-                        <input type="text" id="employee_id" name="employee_id" required class="input-field" placeholder="e.g., 123456">
-                    </div>
-                </div>
-            </div>
+          <div class="mb-8 border-b pb-4">
+    <h2 class="section-header">1. Personal Information</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+            <label for="employee_id" class="block text-sm font-medium text-gray-700 mb-1">Employee ID</label>
+            <input 
+                type="text" 
+                id="employee_id" 
+                name="employee_id" 
+                required 
+                class="input-field border-indigo-300 focus:border-indigo-500 focus:ring-indigo-500" 
+                placeholder="Enter Employee ID"
+                onblur="fetchEmployeeName()"
+            >
+            <p class="mt-1 text-xs text-gray-500">Enter ID to auto-populate name.</p>
+        </div>
+        <div>
+            <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+            <input 
+                type="text" 
+                id="name" 
+                name="name" 
+                required 
+                class="input-field bg-gray-50 text-gray-600 cursor-not-allowed" 
+                placeholder="Auto-populated..." 
+                readonly
+            >
+        </div>
+    </div>
+</div>
             
             <!-- SECTION 2: ASSETS & LIABILITIES (Two-Column Summary) -->
             <h2 class="section-header">2. Details of Assets & Liabilities</h2>
@@ -367,10 +384,16 @@
     <!-- JavaScript for Live Calculation (for better UX) -->
     <script>
         // Currency formatting helper: display formatted currency but keep raw numeric value in a hidden input
-        (function(){
+      (function(){
             function formatCurrency(value){
                 if (value === '' || value === null || isNaN(Number(value))) return '';
-                return new Intl.NumberFormat('en-US', {style: 'currency', currency: 'USD', minimumFractionDigits:2, maximumFractionDigits:2}).format(Number(value));
+                
+                // UPDATED: Changed style to 'decimal' to remove the $ sign from the input value
+                return new Intl.NumberFormat('en-US', {
+                    style: 'decimal', 
+                    minimumFractionDigits: 2, 
+                    maximumFractionDigits: 2
+                }).format(Number(value));
             }
 
             document.addEventListener('DOMContentLoaded', function(){
@@ -402,6 +425,7 @@
                     inp.addEventListener('input', function(){
                         const raw = inp.value.replace(/[^0-9.\-]/g, '');
                         hidden.value = raw;
+                        hidden.dispatchEvent(new Event('input'));
                     });
 
                     // on blur: format nicely
@@ -495,5 +519,36 @@
             calculateTotals();
         });
     </script>
+    <script>
+    async function fetchEmployeeName() {
+        const empIdInput = document.getElementById('employee_id');
+        const nameInput = document.getElementById('name');
+        const empId = empIdInput.value.trim();
+
+        if (!empId) return;
+
+        // Show loading state
+        nameInput.value = "Fetching name...";
+        
+        try {
+            const response = await fetch(`/api/get-employee-name/${empId}`);
+            const data = await response.json();
+
+            if (response.ok && data.name) {
+                nameInput.value = data.name;
+                // Optional: Flash green to show success
+                nameInput.classList.add('bg-green-50');
+                setTimeout(() => nameInput.classList.remove('bg-green-50'), 1000);
+            } else {
+                nameInput.value = "";
+                alert("Employee not found. Please check the ID.");
+            }
+        } catch (error) {
+            console.error('Error fetching employee:', error);
+            nameInput.value = "";
+            alert("Unable to connect to HR system.");
+        }
+    }
+</script>
 </body>
 </html>
