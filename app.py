@@ -4,6 +4,10 @@ import psycopg2
 import psycopg2.extras
 from dotenv import load_dotenv
 import sqlite3
+import requests
+
+# Simple in-memory cache for the token
+# Structure: {'token': 'abc...', 'expires_at': 1234567890}
 
 # --- Database existence check ---
 def ensure_database_exists():
@@ -42,7 +46,7 @@ load_dotenv()
 # Ensure DB exists before app starts
 ensure_database_exists()
 import secrets
-from flask import Flask, render_template, request, redirect, url_for, session, abort, g
+from flask import Flask, render_template, request, redirect, url_for, session, abort, g, jsonify
 import uuid
 import json
 import time
@@ -398,19 +402,64 @@ def admin():
     conn.close()
     return render_template('admin.html', message=message, new_user_password=new_user_password, users=users)
 
+#helper function to get employee ID from OrangeHRM
+def get_employee_id_from_api(email):
+    """
+    Fetches the Employee ID from OrangeHRM using the user's email.
+    Assumes the API allows filtering by email via query parameter.
+    """
+    if not email:
+        return None
 
+    # URL based on your request
+    api_url = "https://jngroup-uat.orangehrmlive.com/api/employees"
+    
+    # Parameters for the GET request
+    params = {'email': email}
+    
+    # HEADERS: You likely need an API Token here. 
+    # Update 'YOUR_API_TOKEN' below or load it from os.environ.get('ORANGEHRM_TOKEN')
+    headers = {
+        'Content-Type': 'application/json',
+        # 'Authorization': 'Bearer YOUR_ORANGEHRM_API_TOKEN' 
+    }
+
+    try:
+        response = requests.get(api_url, params=params, headers=headers, timeout=5)
+        
+        if response.status_code == 200:
+            data = response.json()
+            # Try to find employeeId in the response. 
+            # Adjust the key access ['data'][0]['employeeId'] based on the actual JSON structure.
+            if 'data' in data and len(data['data']) > 0:
+                return data['data'][0].get('employeeId')
+            elif 'employeeId' in data:
+                return data['employeeId']
+                
+        print(f"[WARN] API Fetch Failed: {response.status_code} - {response.text}")
+    except Exception as e:
+        print(f"[ERROR] Could not fetch employee ID: {e}")
+
+    return None
+#Index route to display the form
 @app.route('/', methods=['GET'])
 def index():
     """Displays the Confidential Statement of Affairs form, restricted to logged-in users."""
     if not check_auth():
         return redirect(url_for('login'))
+    # --- NEW LOGIC START ---
+    user_email = session.get('email')
+    employee_id = get_employee_id_from_api(user_email) or "" 
+    # --- NEW LOGIC END ---
         
-    return render_template('form.html')
+    return render_template('form.html', employee_id=employee_id)
 
+#Submit POST route to handle form submission
 @app.route('/submit', methods=['POST'])
 def submit():
-    """Handles the form submission and inserts data into DuckDB."""
+    """Handles the form submission and inserts data into DB."""
     if not check_auth():
+        
         # Prevent unauthorized submissions
         abort(403) 
         
@@ -606,6 +655,109 @@ def initialize_admin_user():
             print("(Password is set from environment variables and not printed for security.)")
             print("---------------------------------")
     conn.close()
+
+ORANGEHRM_BASE_URL = os.environ.get('ORANGEHRM_BASE_URL')
+ORANGEHRM_CLIENT_ID = os.environ.get('ORANGEHRM_CLIENT_ID')
+ORANGEHRM_CLIENT_SECRET = os.environ.get('ORANGEHRM_CLIENT_SECRET')
+
+def get_orangehrm_token():
+    """
+    Retrieves a valid Bearer token. 
+    Checks the cache first; if expired or missing, requests a new one.
+    """
+   
+    global _token_cache
+    now = time.time()
+    _token_cache = {}
+    # 1. Check if we have a valid cached token (with 60s buffer)
+    if _token_cache.get('token') and _token_cache.get('expires_at', 0) > (now + 60):
+        return _token_cache['token']
+    
+    # 2. Request a new token
+    token_url = f"{ORANGEHRM_BASE_URL}/oauth/issueToken"
+    
+    # Standard OAuth2 Client Credentials flow
+    payload = {
+        'client_id': ORANGEHRM_CLIENT_ID,
+        'client_secret': ORANGEHRM_CLIENT_SECRET,
+        'grant_type': 'client_credentials'
+    }
+    
+    try:
+        response = requests.post(token_url, json=payload, timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            access_token = data.get('access_token')
+            expires_in = data.get('expires_in', 3600) # Default to 1 hour if missing
+            
+            # Update Cache
+            _token_cache = {
+                'token': access_token,
+                'expires_at': now + expires_in
+            }
+            return access_token
+        else:
+            print(f"[ERROR] Token Fetch Failed: {response.status_code} - {response.text}")
+            return None
+            
+    except Exception as e:
+        print(f"[ERROR] Exception during token fetch: {e}")
+        return None
+@app.route('/api/get-employee-name/<employee_id>', methods=['GET'])
+def get_employee_name(employee_id):
+    """
+    Proxy route to fetch employee details from OrangeHRM by ID.
+    """
+    if not check_auth():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    # 1. Get a valid token
+    token = get_orangehrm_token()
+    if not token:
+        return jsonify({"error": "Could not authenticate with HR System"}), 503
+
+    # 2. Call the Employee Endpoint
+    # Note: Ensure this is the correct endpoint for fetching by ID. 
+    # Sometimes it is /api/employees/{id} or /api/employees?employeeId={id}
+    api_url = f"{ORANGEHRM_BASE_URL}/api/employees/{employee_id}"
+    
+    headers = {
+        'Authorization': f'Bearer {token}'
+        #'Content-Type': 'application/json'
+    }
+
+    try:
+        response = requests.get(api_url, headers=headers, timeout=5)
+        
+        if response.status_code == 200:
+            data = response.json()
+            
+            # Handle API response structure (checking for 'data' wrapper or direct object)
+            emp_data = data.get('data', data)
+            if isinstance(emp_data, list):
+                if not emp_data:
+                    return jsonify({"error": "Employee not found"}), 404
+                emp_data = emp_data[0]
+
+            # Extract Name
+            first = emp_data.get('firstName', '')
+            middle = emp_data.get('middleName', '')
+            last = emp_data.get('lastName', '')
+            
+            full_name = f"{first} {middle} {last}".replace('  ', ' ').strip()
+            
+            return jsonify({"name": full_name})
+            
+        elif response.status_code == 404:
+            return jsonify({"error": "Employee ID not found"}), 404
+        else:
+            print(f"[ERROR] API Error: {response.status_code} - {response.text}")
+            return jsonify({"error": "Failed to fetch employee details"}), response.status_code
+
+    except Exception as e:
+        print(f"[ERROR] API Request Exception: {e}")
+        return jsonify({"error": "Internal Server Error"}), 500
 
 if __name__ == '__main__':
     # Initialize DB connection and create admin user on startup
