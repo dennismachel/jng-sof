@@ -5,6 +5,10 @@ import psycopg2.extras
 from dotenv import load_dotenv
 import sqlite3
 import requests
+import logging 
+
+# Set up logger (if not already done)
+logger = logging.getLogger(__name__)
 
 # Simple in-memory cache for the token
 # Structure: {'token': 'abc...', 'expires_at': 1234567890}
@@ -704,61 +708,67 @@ def get_orangehrm_token():
     except Exception as e:
         print(f"[ERROR] Exception during token fetch: {e}")
         return None
-@app.route('/api/get-employee-name/<employee_id>', methods=['GET'])
+    
+@app.route('/api/get-employee-name/<path:employee_id>', methods=['GET'])
 def get_employee_name(employee_id):
     """
-    Proxy route to fetch employee details from OrangeHRM by ID.
+    Fetches employee details using the direct ID endpoint:
+    GET /api/employees/{employee_id}
+    
+    Sanitizes input by removing ALL spaces before calling the API.
     """
     if not check_auth():
         return jsonify({"error": "Unauthorized"}), 401
     
-    # 1. Get a valid token
     token = get_orangehrm_token()
     if not token:
         return jsonify({"error": "Could not authenticate with HR System"}), 503
 
-    # 2. Call the Employee Endpoint
-    # Note: Ensure this is the correct endpoint for fetching by ID. 
-    # Sometimes it is /api/employees/{id} or /api/employees?employeeId={id}
-    api_url = f"{ORANGEHRM_BASE_URL}/api/employees/{employee_id}"
+    # 1. SANITIZATION: Remove ALL spaces (leading, trailing, and internal)
+    # Example: " 10 01 " becomes "1001"
+    clean_id = str(employee_id).replace(" ", "")
+
+    # 2. CONSTRUCT URL: Direct resource lookup
+    api_url = f"{ORANGEHRM_BASE_URL}/api/employees/{clean_id}"
     
     headers = {
-        'Authorization': f'Bearer {token}'
+        'Authorization': f'Bearer {token}',
         #'Content-Type': 'application/json'
     }
 
     try:
-        response = requests.get(api_url, headers=headers, timeout=5)
+        # Debug print to verify the URL being called
+        print(f"[DEBUG] Fetching: {api_url}")
+        
+        response = requests.get(api_url, headers=headers, timeout=10)
         
         if response.status_code == 200:
             data = response.json()
             
-            # Handle API response structure (checking for 'data' wrapper or direct object)
+            # The direct endpoint usually returns the object directly under 'data'
+            # Structure: { "data": { "firstName": "...", ... } }
             emp_data = data.get('data', data)
-            if isinstance(emp_data, list):
-                if not emp_data:
-                    return jsonify({"error": "Employee not found"}), 404
-                emp_data = emp_data[0]
-
+            
             # Extract Name
             first = emp_data.get('firstName', '')
             middle = emp_data.get('middleName', '')
             last = emp_data.get('lastName', '')
             
             full_name = f"{first} {middle} {last}".replace('  ', ' ').strip()
-            
             return jsonify({"name": full_name})
             
         elif response.status_code == 404:
+            print(f"[ERROR] Employee ID {clean_id} not found.")
             return jsonify({"error": "Employee ID not found"}), 404
+            
         else:
-            print(f"[ERROR] API Error: {response.status_code} - {response.text}")
+            print(f"[ERROR] API Error {response.status_code}: {response.text}")
             return jsonify({"error": "Failed to fetch employee details"}), response.status_code
 
     except Exception as e:
-        print(f"[ERROR] API Request Exception: {e}")
+        print(f"[ERROR] Exception: {e}")
         return jsonify({"error": "Internal Server Error"}), 500
-
+    
 if __name__ == '__main__':
     # Initialize DB connection and create admin user on startup
     # It MUST be 0.0.0.0, not localhost
