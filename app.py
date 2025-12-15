@@ -7,7 +7,7 @@ import sqlite3
 import requests
 import logging 
 from google.cloud import storage
-from weasyprint import HTML
+
 
 # Set up logger (if not already done)
 logger = logging.getLogger(__name__)
