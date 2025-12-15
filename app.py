@@ -8,6 +8,11 @@ import requests
 import logging 
 from google.cloud import storage
 
+_token_cache = {}
+
+ORANGEHRM_BASE_URL = os.environ.get('ORANGEHRM_BASE_URL')
+ORANGEHRM_CLIENT_ID = os.environ.get('ORANGEHRM_CLIENT_ID')
+ORANGEHRM_CLIENT_SECRET = os.environ.get('ORANGEHRM_CLIENT_SECRET')
 
 # Set up logger (if not already done)
 logger = logging.getLogger(__name__)
@@ -664,42 +669,40 @@ def initialize_admin_user():
             print("---------------------------------")
     conn.close()
 
-ORANGEHRM_BASE_URL = os.environ.get('ORANGEHRM_BASE_URL')
-ORANGEHRM_CLIENT_ID = os.environ.get('ORANGEHRM_CLIENT_ID')
-ORANGEHRM_CLIENT_SECRET = os.environ.get('ORANGEHRM_CLIENT_SECRET')
 
+
+# Token cache and retrieval
 def get_orangehrm_token():
     """
-    Retrieves a valid Bearer token. 
+    Retrieves a valid Bearer token.
     Checks the cache first; if expired or missing, requests a new one.
     """
-   
     global _token_cache
     now = time.time()
-    _token_cache = {}
-    # 1. Check if we have a valid cached token (with 60s buffer)
+
+    # 1. Check cache
     if _token_cache.get('token') and _token_cache.get('expires_at', 0) > (now + 60):
         return _token_cache['token']
-    
-    # 2. Request a new token
+
+    # 2. Request new token
     token_url = f"{ORANGEHRM_BASE_URL}/oauth/issueToken"
-    
-    # Standard OAuth2 Client Credentials flow
     payload = {
         'client_id': ORANGEHRM_CLIENT_ID,
         'client_secret': ORANGEHRM_CLIENT_SECRET,
         'grant_type': 'client_credentials'
     }
-    
     try:
         response = requests.post(token_url, json=payload, timeout=10)
-        
         if response.status_code == 200:
             data = response.json()
             access_token = data.get('access_token')
-            expires_in = data.get('expires_in', 3600) # Default to 1 hour if missing
-            
-            # Update Cache
+            expires_in = data.get('expires_in', 3600)
+
+            if not access_token:
+                print("[ERROR] No access_token in response:", data)
+                return None
+
+            # Update cache
             _token_cache = {
                 'token': access_token,
                 'expires_at': now + expires_in
@@ -708,11 +711,11 @@ def get_orangehrm_token():
         else:
             print(f"[ERROR] Token Fetch Failed: {response.status_code} - {response.text}")
             return None
-            
     except Exception as e:
         print(f"[ERROR] Exception during token fetch: {e}")
         return None
-    
+
+   # API route to get employee name by ID 
 @app.route('/api/get-employee-name/<path:employee_id>', methods=['GET'])
 def get_employee_name(employee_id):
     """
