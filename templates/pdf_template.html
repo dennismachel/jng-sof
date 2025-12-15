@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Confidential Statement of Affairs</title>
+    <style>
+        body { font-family: sans-serif; font-size: 12px; padding: 20px; }
+        h1 { text-align: center; font-size: 18px; color: #333; margin-bottom: 5px; }
+        h2 { font-size: 14px; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-top: 20px; color: #444; }
+        .header-info { text-align: center; margin-bottom: 20px; color: #666; }
+        .row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .label { font-weight: bold; }
+        .value { text-align: right; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 6px; text-align: left; }
+        th { background-color: #f9fafb; font-weight: bold; }
+        .text-right { text-align: right; }
+        .total-row { font-weight: bold; background-color: #f0fdf4; }
+        .total-row-red { font-weight: bold; background-color: #fef2f2; }
+    </style>
+</head>
+<body>
+    <h1>JN Group Confidential Statement of Affairs</h1>
+    <div class="header-info">
+        <p><strong>Employee:</strong> {{ name }} (ID: {{ employee_id }})</p>
+        <p><strong>Submission Year:</strong> {{ submission_year }}</p>
+    </div>
+
+    <table style="width: 100%; border: none;">
+        <tr style="vertical-align: top;">
+            <td style="width: 48%; border: none;">
+                <h2>Assets</h2>
+                {% for label, val in assets %}
+                <div class="row"><span class="label">{{ label }}</span> <span>{{ val|currency }}</span></div>
+                {% endfor %}
+                <div class="row total-row" style="margin-top:10px; padding:5px;"><span class="label">TOTAL ASSETS</span> <span>{{ total_assets|currency }}</span></div>
+            </td>
+            <td style="width: 4%; border: none;"></td>
+            <td style="width: 48%; border: none;">
+                <h2>Liabilities</h2>
+                {% for label, val in liabilities %}
+                <div class="row"><span class="label">{{ label }}</span> <span>{{ val|currency }}</span></div>
+                {% endfor %}
+                <div class="row total-row-red" style="margin-top:10px; padding:5px;"><span class="label">TOTAL LIABILITIES</span> <span>{{ total_liabilities|currency }}</span></div>
+                
+                <div style="margin-top: 20px; text-align: right; font-size: 14px; font-weight: bold;">
+                    NET WORTH: {{ net_worth|currency }}
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <h2>A. Motor Vehicle(s)</h2>
+    <table>
+        <thead><tr><th>Make</th><th>Model</th><th class="text-right">Value</th><th class="text-right">Loan</th><th class="text-right">Payment</th></tr></thead>
+        <tbody>
+            {% for item in mv_schedule %}
+            {% if item.type_make or item.year_model %}
+            <tr>
+                <td>{{ item.type_make }}</td><td>{{ item.year_model }}</td>
+                <td class="text-right">{{ item.value|currency }}</td>
+                <td class="text-right">{{ item.loan_balance|currency }}</td>
+                <td class="text-right">{{ item.monthly_payment|currency }}</td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Monthly Cash Flow</h2>
+    <div class="row"><span class="label">Total Inflows</span> <span>{{ total_inflows|currency }}</span></div>
+    <div class="row"><span class="label">Total Outflows</span> <span>{{ total_outflows|currency }}</span></div>
+    <div class="row" style="font-size: 14px; margin-top: 10px;">
+        <span class="label">Residual Income</span> 
+        <span style="font-weight: bold;">{{ residual_income|currency }}</span>
+    </div>
+</body>
+</html>
