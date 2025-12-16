@@ -416,7 +416,7 @@ def admin():
     return render_template('admin.html', message=message, new_user_password=new_user_password, users=users)
 
 #helper function to get employee ID from OrangeHRM
-def get_employee_id_from_api(email):
+#def get_employee_id_from_api(email):
     """
     Fetches the Employee ID from OrangeHRM using the user's email.
     Assumes the API allows filtering by email via query parameter.
@@ -747,6 +747,7 @@ def get_employee_name(employee_id):
     headers = {
         'Authorization': f'Bearer {token}',
         #'Content-Type': 'application/json'
+        'Content-Type': 'application/x-www-form-urlencoded'
     }
 
     try:
