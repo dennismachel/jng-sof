@@ -1,4 +1,5 @@
 
+from datetime import datetime
 import os
 import psycopg2
 import psycopg2.extras
@@ -7,8 +8,10 @@ import sqlite3
 import requests
 import logging 
 from google.cloud import storage
+from weasyprint import HTML
 
 _token_cache = {}
+current_year = datetime.now().year
 
 ORANGEHRM_BASE_URL = os.environ.get('ORANGEHRM_BASE_URL')
 ORANGEHRM_CLIENT_ID = os.environ.get('ORANGEHRM_CLIENT_ID')
@@ -470,7 +473,7 @@ def index():
 #Submit POST route to handle form submission
 @app.route('/submit', methods=['POST'])
 def submit():
-    """Handles the form submission and inserts data into DB."""
+    """Handles the form submission, generate & save PDF, and inserts data into DB."""
     if not check_auth():
         
         # Prevent unauthorized submissions
@@ -479,6 +482,7 @@ def submit():
     try:
         data = request.form
         
+            
         # Helper function for safe float conversion
         def safe_float(val):
             try:
@@ -584,6 +588,71 @@ def submit():
             other_income, statutory_deductions, total_inflows, total_outflows, residual_income
         )
 
+ # 1. Prepare data for PDF template
+        pdf_context = {
+            'name': data.get('name'),
+            'employee_id': data.get('employee_id'),
+            'submission_year': current_year,
+            'total_assets': total_assets,
+            'total_liabilities': total_liabilities,
+            'net_worth': net_worth,
+            'total_inflows': total_inflows,
+            'total_outflows': total_outflows,
+            'residual_income': residual_income,
+            'assets': [
+                ('Real Estate', real_estate_summary),
+                ('Motor Vehicles', motor_vehicles_summary),
+                ('Furniture & Equipment', furniture_equipment),
+                ('Life Insurance (Cash Value)', life_insurance_cash_value),
+                ('Other Non-Cash Assets', other_non_cash_assets_summary),
+                ('Amounts Owed To You', amounts_owed_to_you),
+                ('Savings/Deposits', savings_deposits),
+                ('Other Accounts', other_accounts),
+                ('Other Investments', other_investments),
+            ],
+            'liabilities': [
+                ('Real Estate Loans', loan_real_estate),
+                ('Vehicle Loans', loan_motor_vehicles),
+                ('Furniture Loans', loan_furniture_equipment),
+                ('Overdraft', current_account_overdraft),
+                ('Other Loans', other_loans_payable),
+                ('Other Liabilities', other_liabilities_not_described),
+            ],
+            'mv_schedule': motor_vehicle_schedule_list, 
+        }
+
+        # 2. Render PDF
+        rendered_html = render_template('pdf_template.html', **pdf_context)
+        pdf_file = io.BytesIO()
+        HTML(string=rendered_html).write_pdf(pdf_file)
+        pdf_file.seek(0)
+
+        # 3. Upload to Google Cloud Storage
+        gcs_bucket_name = os.environ.get('GCS_BUCKET_NAME')
+        pdf_gcs_path = None
+        if gcs_bucket_name:
+            try:
+                # Sanitize filename: Name_ID_Year.pdf
+                safe_name = "".join([c for c in data.get('name', '') if c.isalnum() or c in (' ', '_')]).strip().replace(' ', '_')
+                safe_id = "".join([c for c in data.get('employee_id', '') if c.isalnum()])
+                filename = f"{safe_name}_{safe_id}_{current_year}.pdf"
+                
+                storage_client = storage.Client()
+                bucket = storage_client.bucket(gcs_bucket_name)
+                blob = bucket.blob(filename)
+                
+                blob.upload_from_file(pdf_file, content_type='application/pdf')
+                
+                # Store the GCS URI (gs://...) or Public URL depending on preference
+                pdf_gcs_path = f"gs://{gcs_bucket_name}/{filename}"
+                print(f"PDF uploaded to: {pdf_gcs_path}")
+            except Exception as e:
+                print(f"PDF Upload Failed: {e}")
+                # We typically don't fail the whole submission if PDF upload fails, 
+                # but you can decide to raise e here.
+        else:
+            print("GCS_BUCKET_NAME not set. Skipping PDF upload.")
+        # Final DB insertion with all data
         conn = get_db_connection()
         with conn.cursor() as cur:
             cur.execute("""
@@ -801,7 +870,7 @@ if __name__ == '__main__':
         print(f"Database initialization failed: {e}")
     
     # Run the Flask app (local/dev). Respect PORT env var so containerized runs can bind correctly.
-    port = int(os.environ.get('PORT', 5000))
+    port = int(os.environ.get('PORT', 8080))
     host = os.environ.get('HOST', '0.0.0.0')
     app.run(host="0.0.0.0", port=port, debug=(os.environ.get('FLASK_DEBUG') == '1'))
 
