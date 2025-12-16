@@ -462,10 +462,10 @@ def index():
         return redirect(url_for('login'))
     # --- NEW LOGIC START ---
     user_email = session.get('email')
-    employee_id = get_employee_id_from_api(user_email) or "" 
+    employee_id = None
     # --- NEW LOGIC END ---
         
-    return render_template('form.html', employee_id=employee_id)
+    return render_template('form.html')
 
 #Submit POST route to handle form submission
 @app.route('/submit', methods=['POST'])
