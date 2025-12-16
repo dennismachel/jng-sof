@@ -1,5 +1,6 @@
 
 from datetime import datetime
+import io
 import os
 import psycopg2
 import psycopg2.extras
@@ -150,6 +151,16 @@ app.config['FLASK_DEBUG'] = os.environ.get('FLASK_DEBUG', app.config.get('DEBUG'
 # Initialize Bcrypt
 bcrypt = Bcrypt(app)
 
+@app.template_filter('currency')
+def currency_filter(value):
+    """Formats a number as currency (e.g., 1234.5 becomes $1,234.50)."""
+    try:
+        if value is None:
+            value = 0.0
+        value = float(value)
+        return "${:,.2f}".format(value)
+    except (ValueError, TypeError):
+        return value
 
 def get_db_connection():
     """Establishes connection to PostgreSQL and ensures schema exists."""
