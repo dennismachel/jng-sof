@@ -659,6 +659,7 @@ def submit():
                 print(f"PDF uploaded to: {pdf_gcs_path}")
             except Exception as e:
                 print(f"PDF Upload Failed: {e}")
+                print(e.with_traceback(e.__traceback__))
                 # We typically don't fail the whole submission if PDF upload fails, 
                 # but you can decide to raise e here.
         else:
@@ -675,13 +676,13 @@ def submit():
                     other_loans_payable, other_liabilities_not_described, total_liabilities, net_worth,
                     motor_vehicle_schedule, real_estate_schedule, other_non_cash_assets_schedule,
                     employed_income_net, utilities_expense, transportation_expense, other_living_expense,
-                    other_income, statutory_deductions, total_inflows, total_outflows, residual_income
+                    other_income, statutory_deductions, total_inflows, total_outflows, residual_income, pdf_file_path, submission_year
                 ) VALUES (
                     %s, %s, %s, CURRENT_TIMESTAMP,
                     %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                     %s, %s, %s, %s, %s, %s, %s, %s,
                     %s::jsonb, %s::jsonb, %s::jsonb,
-                    %s, %s, %s, %s, %s, %s, %s, %s, %s
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
                 )
             """, (
                 str(uuid.uuid4()), data.get('name'), data.get('employee_id'),
@@ -691,7 +692,7 @@ def submit():
                 other_loans_payable, other_liabilities_not_described, total_liabilities, net_worth,
                 motor_vehicle_schedule_json, real_estate_schedule_json, other_non_cash_assets_schedule_json,
                 employed_income_net, utilities_expense, transportation_expense, other_living_expense,
-                other_income, statutory_deductions, total_inflows, total_outflows, residual_income
+                other_income, statutory_deductions, total_inflows, total_outflows, residual_income, pdf_gcs_path, current_year
             ))
         conn.close()
 
