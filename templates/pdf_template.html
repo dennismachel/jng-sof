@@ -66,6 +66,28 @@
             {% endfor %}
         </tbody>
     </table>
+    <!--Business Interests-->
+    <h2>Business Interest(s)</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Name of Business</th>
+                <th class="text-right">Shareholder %</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in business_interests %}
+            <tr>
+                <td>{{ item.name }}</td>
+                <td class="text-right">{{ item.percentage }}%</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="2" style="text-align: center; color: #777;">None Declared</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 
     <h2>Monthly Cash Flow</h2>
     <div class="row"><span class="label">Total Inflows</span> <span>{{ total_inflows|currency }}</span></div>

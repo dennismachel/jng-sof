@@ -121,6 +121,7 @@ CREATE TABLE IF NOT EXISTS StatementOfAffairs (
     total_outflows DOUBLE PRECISION,
     residual_income DOUBLE PRECISION,
     submission_year INTEGER,
+    business_interests_schedule JSONB,
     pdf_file_path TEXT
 );
 
@@ -569,8 +570,18 @@ def submit():
         motor_vehicle_schedule_json = json.dumps(motor_vehicle_schedule_list)
         real_estate_schedule_json = json.dumps(real_estate_schedule_list)
         other_non_cash_assets_schedule_json = json.dumps(other_non_cash_assets_schedule_list)
-
-
+        business_names = request.form.getlist('business_name[]')
+        business_percentages = request.form.getlist('business_percentage[]')
+        #business interests
+        business_interests_schedule_list = []
+        # Zip them together to create objects
+        for name, pct in zip(business_names, business_percentages):
+            if name.strip(): # Only save if a name was entered
+                business_interests_schedule_list.append({
+                    "name": name,
+                    "percentage": safe_float(pct)
+                })
+        business_interests_schedule_json = json.dumps(business_interests_schedule_list)
         # --- 3. INCOME & EXPENSES (Section 3) ---
         
         employed_income_net = safe_float(data.get('employed_income_net'))
@@ -610,6 +621,7 @@ def submit():
             'total_inflows': total_inflows,
             'total_outflows': total_outflows,
             'residual_income': residual_income,
+            'business_interests': business_interests_schedule_list,
             'assets': [
                 ('Real Estate', real_estate_summary),
                 ('Motor Vehicles', motor_vehicles_summary),
@@ -675,6 +687,7 @@ def submit():
                     loan_real_estate, loan_motor_vehicles, loan_furniture_equipment, current_account_overdraft,
                     other_loans_payable, other_liabilities_not_described, total_liabilities, net_worth,
                     motor_vehicle_schedule, real_estate_schedule, other_non_cash_assets_schedule,
+                    business_interests_schedule, -- <--- ADDED COLUMN
                     employed_income_net, utilities_expense, transportation_expense, other_living_expense,
                     other_income, statutory_deductions, total_inflows, total_outflows, residual_income, pdf_file_path, submission_year
                 ) VALUES (
@@ -682,6 +695,7 @@ def submit():
                     %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                     %s, %s, %s, %s, %s, %s, %s, %s,
                     %s::jsonb, %s::jsonb, %s::jsonb,
+                    %s::jsonb, -- <--- ADDED VALUE
                     %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
                 )
             """, (
@@ -691,6 +705,7 @@ def submit():
                 loan_real_estate, loan_motor_vehicles, loan_furniture_equipment, current_account_overdraft,
                 other_loans_payable, other_liabilities_not_described, total_liabilities, net_worth,
                 motor_vehicle_schedule_json, real_estate_schedule_json, other_non_cash_assets_schedule_json,
+                business_interests_schedule_json, # <--- ADDED PARAM
                 employed_income_net, utilities_expense, transportation_expense, other_living_expense,
                 other_income, statutory_deductions, total_inflows, total_outflows, residual_income, pdf_gcs_path, current_year
             ))

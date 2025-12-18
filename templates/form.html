@@ -289,6 +289,26 @@
                     </div>
                 </div>
             </div>
+             <!-- D. Business/Shareholding Interests-->
+            <div class="mb-8">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-semibold text-gray-700">D. Business Interest(s)</h3>
+                        <button type="button" onclick="addBusinessRow()" class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 text-sm font-semibold transition">+ Add Business</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200" id="business_table">
+                            <thead>
+                                <tr>
+                                    <th class="table-header w-3/4">Name of Business</th>
+                                    <th class="table-header w-1/4">Shareholder %</th>
+                                    <th class="table-header w-10"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
 
             <!-- SECTION 4: CASH FLOW (INCOME & EXPENSES) -->
             <h2 class="section-header">4. Monthly Cash Flow</h2>
@@ -369,7 +389,28 @@
                     </div>
                 </div>
             </div>
-
+            <div class="mt-12">
+                <h2 class="section-header">Certification</h2>
+                
+                <div class="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                    <p class="text-gray-800 text-sm mb-4">
+                        I certify that the information given above is true and accurate and understand that the said information forms part of my Annual Declaration.
+                    </p>
+                    
+                    <div class="flex items-center">
+                        <input 
+                            type="checkbox" 
+                            id="certification_check" 
+                            name="certification" 
+                            required 
+                            class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                        >
+                        <label for="certification_check" class="ml-2 block text-sm font-bold text-gray-800">
+                            I confirm and agree to the above statement
+                        </label>
+                    </div>
+                </div>
+            </div>
             <!-- SUBMISSION BUTTON -->
             <div class="mt-12 pt-6 border-t border-gray-300 text-center">
                 <button type="submit" class="w-full sm:w-1/2 px-8 py-4 bg-indigo-600 text-white font-semibold rounded-lg shadow-lg hover:bg-indigo-700 transition duration-200 focus:outline-none focus:ring-4 focus:ring-indigo-300">
@@ -550,5 +591,34 @@
         }
     }
 </script>
+<!--JS for Business Interests-->
+<script>
+        function addBusinessRow() {
+            const tbody = document.querySelector('#business_table tbody');
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="table-cell">
+                    <input type="text" name="business_name[]" class="input-field p-1 text-sm" placeholder="Enter Business Name" required>
+                </td>
+                <td class="table-cell">
+                    <div class="flex items-center">
+                        <input type="number" step="0.01" name="business_percentage[]" class="input-field p-1 text-sm text-right" placeholder="0" min="0" max="100">
+                        <span class="ml-2 text-sm text-gray-500">%</span>
+                    </div>
+                </td>
+                <td class="table-cell text-center">
+                    <button type="button" onclick="this.closest('tr').remove()" class="text-red-500 hover:text-red-700 font-bold text-lg" title="Remove">&times;</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        }
+
+        // Add one empty row by default on load
+        document.addEventListener('DOMContentLoaded', () => {
+            if(document.querySelector('#business_table tbody').children.length === 0) {
+                addBusinessRow();
+            }
+        });
+    </script>
 </body>
 </html>
