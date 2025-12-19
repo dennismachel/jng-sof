@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Confidential Statement of Affairs</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="app-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
+    <link rel="manifest" href="/static/site.webmanifest">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -598,7 +603,7 @@
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td class="table-cell">
-                    <input type="text" name="business_name[]" class="input-field p-1 text-sm" placeholder="Enter Business Name" required>
+                    <input type="text" name="business_name[]" class="input-field p-1 text-sm" placeholder="Enter Business Name">
                 </td>
                 <td class="table-cell">
                     <div class="flex items-center">
